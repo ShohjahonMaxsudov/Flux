@@ -5,6 +5,9 @@ name: Build Windows app
 # a real Windows machine (GitHub provides one for free), so you don't
 # need Windows yourself just to produce Flux.exe / FluxSetup.exe.
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
