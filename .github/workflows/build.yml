@@ -35,6 +35,12 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install pyinstaller
 
+      - name: Smoke-test Flux UI
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+          python -c "from PySide6.QtWidgets import QApplication; from app import Flux; q=QApplication([]); w=Flux(); w.show(); q.processEvents(); print('Flux UI smoke test passed'); w.close()"
+
       - name: Build Flux
         shell: pwsh
         run: |
