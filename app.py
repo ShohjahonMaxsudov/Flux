@@ -506,7 +506,7 @@ class Flux(QMainWindow):
 
         self.uiContainer.raise_()
 
-        if hasattr(self, "dockBackdrop"):
+        if hasattr(self, "bottomBlur"):
             self.bottomBlur.raise_()
 
         if hasattr(self, "dock"):
@@ -709,7 +709,7 @@ class Flux(QMainWindow):
 
     def _position_dock(self):
 
-        if not hasattr(self, "dock") or not hasattr(self, "dockBackdrop"):
+        if not hasattr(self, "dock") or not hasattr(self, "bottomBlur"):
             return
 
         width = self.dock.width()
