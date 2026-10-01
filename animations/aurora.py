@@ -65,7 +65,7 @@ class AuroraBackground(QWidget):
     # 30fps is plenty for slow ambient drift, and every frame repaints the
     # whole window's worth of gradients - half the frames, half the CPU.
 
-    FRAME_MS = 33
+    FRAME_MS = 16
 
     def __init__(self, parent=None):
         super().__init__(parent)
