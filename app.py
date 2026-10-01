@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 from PySide6.QtGui import QPainter, QColor, QLinearGradient
 
 
-from ui.sidebar import Sidebar
+from ui.dock import FloatingDock, FrostedDockBackdrop
 
 from ui.page_manager import PageManager
 
@@ -157,7 +157,7 @@ class Flux(QMainWindow):
             22,
             22,
             22,
-            22
+            118
         )
 
 
@@ -165,15 +165,7 @@ class Flux(QMainWindow):
             22
         )
 
-
-
-        # Sidebar
-
-        self.sidebar = Sidebar()
-
-
-
-        # Pages
+# Pages
 
         self.pages = PageManager()
 
@@ -246,32 +238,57 @@ class Flux(QMainWindow):
             "Dashboard"
         )
 
-
-
-        # Sidebar -> Pages
-
-        self.sidebar.filterChanged.connect(
-            self.change_page
-        )
-
-
-
-        layout.addWidget(
-            self.sidebar
-        )
-
+        # Full-width content. The extra bottom margin keeps page controls
+        # clear of the floating dock instead of letting navigation cover them.
 
         layout.addWidget(
             self.pages,
             1
         )
 
-
+        self.pages.set_reduce_motion(
+            self.reduce_motion
+        )
 
         self.uiContainer.raise_()
 
 
-        # Small "task added / deleted / undo" notifications, stacked
+        # Flux Frost Dock — navigation floats over the animated atmosphere
+        # rather than occupying a permanent left rail.
+
+        self.dockBackdrop = FrostedDockBackdrop(
+            [
+                self.aurora,
+                self.stars,
+                self.sakura,
+                self.astro,
+                self.synthwave,
+            ],
+            self.central
+        )
+
+        self.dock = FloatingDock(
+            self.central
+        )
+
+        self.dock.pageChanged.connect(
+            self.change_page
+        )
+
+        self.dockBackdrop.set_reduce_motion(
+            self.reduce_motion
+        )
+
+        self._position_dock()
+
+        self.dockBackdrop.show()
+        self.dock.show()
+
+        self.dockBackdrop.raise_()
+        self.dock.raise_()
+
+
+# Small "task added / deleted / undo" notifications, stacked
         # bottom-right over everything.
 
         self.toastHost = ToastHost(self.central)
@@ -328,7 +345,7 @@ class Flux(QMainWindow):
 
 
         self.dashboardPage.dashboard.progressChanged.connect(
-            self.sidebar.set_progress
+            self.dock.set_progress
         )
 
 
@@ -346,6 +363,8 @@ class Flux(QMainWindow):
         # uiContainer) shows behind the clock.
 
         self.uiContainer.hide()
+        self.dockBackdrop.hide()
+        self.dock.hide()
 
         self.lockScreen = LockScreen(
             self.central
@@ -372,6 +391,12 @@ class Flux(QMainWindow):
         self.lockScreen = None
 
         self.uiContainer.show()
+        self.dockBackdrop.show()
+        self.dock.show()
+        self._position_dock()
+        self.dockBackdrop.refresh_snapshot()
+        self.dockBackdrop.raise_()
+        self.dock.raise_()
 
 
 
@@ -482,6 +507,12 @@ class Flux(QMainWindow):
 
         self.uiContainer.raise_()
 
+        if hasattr(self, "dockBackdrop"):
+            self.dockBackdrop.raise_()
+
+        if hasattr(self, "dock"):
+            self.dock.raise_()
+
         if self._theme_fade is not None:
 
             self._theme_fade["overlay"].raise_()
@@ -509,6 +540,9 @@ class Flux(QMainWindow):
     def set_reduce_motion(self, enabled):
 
         self.reduce_motion = enabled
+
+        self.pages.set_reduce_motion(enabled)
+        self.dockBackdrop.set_reduce_motion(enabled)
 
         self.apply_background_theme()
 
@@ -616,7 +650,8 @@ class Flux(QMainWindow):
         # at construction time and otherwise wouldn't know the theme
         # changed underneath them.
 
-        self.sidebar.apply_theme()
+        self.dock.apply_theme()
+        self.dockBackdrop.apply_theme()
 
         self.dashboardPage.dashboard.refresh_theme()
 
@@ -663,10 +698,40 @@ class Flux(QMainWindow):
 
         if name in mapping:
 
+            target = mapping[name]
+
             self.pages.show_page(
-                mapping[name]
+                target
             )
 
+            self.dock.set_active(
+                target
+            )
+
+    def _position_dock(self):
+
+        if not hasattr(self, "dock") or not hasattr(self, "dockBackdrop"):
+            return
+
+        width = self.dock.width()
+        height = self.dock.height()
+
+        x = max(18, (self.central.width() - width) // 2)
+        y = max(18, self.central.height() - height - 22)
+
+        self.dockBackdrop.setGeometry(
+            x,
+            y,
+            width,
+            height
+        )
+
+        self.dock.setGeometry(
+            x,
+            y,
+            width,
+            height
+        )
 
 
     def resizeEvent(
@@ -706,6 +771,8 @@ class Flux(QMainWindow):
         self.uiContainer.resize(
             size
         )
+
+        self._position_dock()
 
 
         if self.lockScreen is not None:
