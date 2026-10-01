@@ -93,7 +93,7 @@ class FrostedDockBackdrop(QFrame):
         self._reduce_motion = False
 
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.setFixedSize(520, 76)
+        self.setFixedSize(560, 76)
 
         self._timer = QTimer(self)
         self._timer.setInterval(90)
@@ -211,7 +211,7 @@ class FloatingDock(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedSize(520, 76)
+        self.setFixedSize(560, 76)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.progress = 0.0
 
