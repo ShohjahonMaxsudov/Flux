@@ -553,4 +553,4 @@ class FocusPage(QWidget):
 
         super().showEvent(event)
 
-        self.refresh_stats()
+        QTimer.singleShot(0, self.refresh_stats)
