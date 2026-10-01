@@ -1,0 +1,175 @@
+name: Publish Flux release history
+
+on:
+  push:
+    paths:
+      - ".github/workflows/publish-releases.yml"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          mkdir -p .release-notes
+
+          cat > .release-notes/v0.1.0.md <<'EOF'
+          ## Flux — First Release
+
+          Recovered from the original Flux development archive.
+
+          ### Included
+          - Dashboard
+          - Tasks
+          - Calendar
+          - Statistics
+          - SQLite task storage
+          - Dark, Light and Sakura themes
+          - Early animated backgrounds
+
+          This is the baseline that established Flux's original page structure, dashboard statistics, task cards and theme system.
+
+          > Historical milestone reconstructed from the original archived source.
+          EOF
+
+          cat > .release-notes/v0.2.0.md <<'EOF'
+          ## Flux 1.1 — Patch
+
+          The first major stability and behavior pass.
+
+          ### Improvements
+          - Better theme-change propagation across the app
+          - Animation start/stop lifecycle handling
+          - Dashboard refresh after task completion
+          - Tasks, Calendar and Statistics refresh improvements
+          - Reworked Sakura animation behavior
+          - Theme-manager subscription/signaling improvements
+
+          > Historical milestone reconstructed from the original archived source.
+          EOF
+
+          cat > .release-notes/v0.3.0.md <<'EOF'
+          ## Flux 1.2 — Liquid Glass
+
+          Flux's first clear visual-design update.
+
+          ### Added
+          - Refractive glass helpers
+          - Glass-frame utilities
+          - Glass icon-button styling
+
+          ### Redesigned
+          - Header
+          - Sidebar
+          - Stat cards
+          - Task cards
+          - Main productivity pages
+
+          > Historical milestone reconstructed from the original archived source.
+          EOF
+
+          cat > .release-notes/v1.0.0.md <<'EOF'
+          ## Flux — Notes Update
+
+          A major recovered milestone from the later fixed/stability series.
+
+          ### Added
+          - Notes page
+          - Notes manager and persistence
+          - Note locking / PIN support
+          - Note search and management flows
+          - Expanded icon system
+
+          This generation also includes the Settings and Lock Screen work introduced throughout the preceding fixed builds.
+
+          > Historical milestone reconstructed from the original archived source.
+          EOF
+
+          cat > .release-notes/v1.0.1.md <<'EOF'
+          ## Flux — Themes & Quality-of-Life Update
+
+          The current major Flux generation.
+
+          ### Added
+          - Focus page with timer presets and session tracking
+          - Weekly Progress and configurable weekly goals
+          - Task sorting
+          - Undo after deleting tasks
+          - Toast notifications
+          - Quote/banner component
+          - Reduce-motion option
+          - Custom themes and live customization
+          - Dedicated theme picker
+          - Expanded branding system
+
+          ### Theme expansion
+          Astro · Borealis · Ember · Forest · Mono · Nebula · Ocean · Snow · Synthwave · Void · Custom
+
+          ### Animation expansion
+          - Astro planetary background
+          - Synthwave background
+          - More configurable Aurora and Stars effects
+
+          ### Downloads
+          - **FluxSetup.exe** — standard Windows installer
+          - **Flux-portable-windows.zip** — portable Windows build
+          EOF
+
+      - name: Create or update historical releases
+        shell: bash
+        run: |
+          publish_release () {
+            TAG="$1"
+            TITLE="$2"
+            NOTES="$3"
+
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release edit "$TAG"                 --repo "$GITHUB_REPOSITORY"                 --title "$TITLE"                 --notes-file "$NOTES"                 --latest=false
+            else
+              gh release create "$TAG"                 --repo "$GITHUB_REPOSITORY"                 --target main                 --title "$TITLE"                 --notes-file "$NOTES"                 --latest=false
+            fi
+          }
+
+          publish_release "v0.1.0" "Flux — First Release" ".release-notes/v0.1.0.md"
+          publish_release "v0.2.0" "Flux 1.1 — Patch" ".release-notes/v0.2.0.md"
+          publish_release "v0.3.0" "Flux 1.2 — Liquid Glass" ".release-notes/v0.3.0.md"
+          publish_release "v1.0.0" "Flux — Notes Update" ".release-notes/v1.0.0.md"
+
+      - name: Update current release
+        shell: bash
+        run: |
+          if gh release view "v1.0.1" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "v1.0.1"               --repo "$GITHUB_REPOSITORY"               --title "Flux — Themes & Quality-of-Life Update"               --notes-file ".release-notes/v1.0.1.md"               --latest
+          else
+            gh release create "v1.0.1"               --repo "$GITHUB_REPOSITORY"               --target main               --title "Flux — Themes & Quality-of-Life Update"               --notes-file ".release-notes/v1.0.1.md"               --latest
+          fi
+
+      - name: Download current Windows build
+        shell: bash
+        run: |
+          mkdir -p current-build
+          gh run download 36823840741             --repo "$GITHUB_REPOSITORY"             --name "Flux-windows-build"             --dir current-build
+
+          find current-build -maxdepth 2 -type f -print
+
+      - name: Attach current installer and portable build
+        shell: bash
+        run: |
+          SETUP=$(find current-build -type f -name "FluxSetup.exe" | head -n 1)
+          PORTABLE=$(find current-build -type f -name "Flux-portable-windows.zip" | head -n 1)
+
+          test -n "$SETUP"
+          test -n "$PORTABLE"
+
+          gh release upload "v1.0.1"             "$SETUP#FluxSetup.exe"             "$PORTABLE#Flux-portable-windows.zip"             --repo "$GITHUB_REPOSITORY"             --clobber
