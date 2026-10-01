@@ -1,6 +1,6 @@
 ; Flux Windows installer
 #define MyAppName "Flux"
-#define MyAppVersion "1.0.2"
+#define MyAppVersion "1.0.3"
 #define MyAppPublisher "Flux"
 #define MyAppExeName "Flux.exe"
 

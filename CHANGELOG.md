@@ -4,6 +4,24 @@ Notable Flux changes, reconstructed from the original source snapshots.
 
 For the full recovered history and duplicate-map, see **[docs/HISTORY.md](docs/HISTORY.md)**.
 
+## v1.0.3 — Navigation & 60 FPS Patch
+
+### Navigation
+- Enlarged dock icons and active glass bubble to match the intended minimal proportions.
+- Widened/tallened the dock and strengthened the thin theme-reactive rim.
+- Removed the hard-edged bottom panel completely.
+- Replaced it with a fully feathered bottom atmosphere fade that starts transparent and blends naturally into the window edge.
+- Removed duplicate active-pill animation calls.
+
+### Performance
+- Removed all live background grabbing from the dock/bottom atmosphere.
+- Tasks, Notes, Statistics, Focus, Calendar and Dashboard now render first and refresh their data on the next event-loop tick.
+- Removed the main synchronous work that made tab switches feel delayed.
+
+### Motion
+- Aurora, Stars, Sakura, Astro and Synthwave now run on precise ~60 FPS timers instead of the previous ~30 FPS timers.
+- Particle and Sakura movement is time-scaled so the higher frame rate does not make animations run twice as fast.
+
 ## v1.0.2 — Emergency Dock Hotfix
 
 ### Fixed
