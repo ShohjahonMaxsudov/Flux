@@ -1,49 +1,84 @@
-# Flux Changelog
+# Changelog
 
-This file tracks notable Flux changes and release notes.
+Notable Flux changes, reconstructed from the original source snapshots.
 
-> The historical version list is being rebuilt from the original archived Flux builds. Older releases will be documented from the actual files instead of guessing what changed.
+For the full recovered history and duplicate-map, see **[docs/HISTORY.md](docs/HISTORY.md)**.
 
-## Current build
+## Current — Quality-of-Life / Themes Update
 
-### Core experience
-- Dashboard for daily overview and progress
-- Task creation, editing and completion workflows
-- Calendar planning
-- Focus workspace
-- Notes
-- Productivity statistics
-- Settings and personalization
-- Lock-screen experience
+### Added
+- Focus page with timer presets and session tracking
+- Weekly Progress card and configurable weekly goal
+- Task sorting controls
+- Undo for deleted tasks
+- Toast notifications
+- Quote/banner component
+- Reduce-motion option
+- Custom theme creator and live customization controls
+- Expanded theme picker and branding system
+- Astro and Synthwave animated backgrounds
+- Focus-session persistence and daily/weekly totals
 
-### Visual system
-- Theme engine with Astro, Borealis, Dark, Ember, Forest, Light, Mono, Nebula, Ocean, Sakura, Snow, Synthwave and Void themes
-- Theme-specific motion and effects
-- Aurora, glow, particles, sakura, stars and synthwave animation modules
-- Custom theme support
-- Branded icons and Flux visual assets
+### Themes
+Expanded the theme system with Astro, Borealis, Ember, Forest, Mono, Nebula, Ocean, Snow, Synthwave, Void and Custom, alongside the existing themes.
 
-### Desktop / packaging
-- Native Windows packaging through PyInstaller
-- Installable `FluxSetup.exe` through Inno Setup
-- Portable Windows ZIP build
-- Automatic Windows builds through GitHub Actions
-- SQLite data persistence for local app data
+### Improved
+- Theme architecture and palette generation
+- Aurora and Stars configurability
+- Dashboard and task interactions
+- Statistics/focus infrastructure
+- Icon coverage and visual consistency
 
-## Historical releases
+## Fixed Snapshot 10 — Notes Update
 
-Historical Flux versions will be added here in chronological order as their original source archives are restored.
+### Added
+- Notes page
+- Notes manager and persistence
+- Note locking / PIN support
+- Search and note-management flows
+- Expanded app icon system
 
-Each restored release will include:
-- version number
-- release title
-- release date when known
-- features added
-- UI changes
-- bug fixes
-- technical changes
-- downloadable Windows build when possible
+## Fixed Snapshot 9 — Dashboard Utilities
 
----
+### Added
+- Mini calendar
+- Progress ring
+- Sidebar progress integration
 
-If you have an old Flux build, keep the original archive unchanged. It can be compared against the versions before and after it to produce accurate patch notes.
+### Improved
+- Task-card context menu
+- Dashboard/Sakura visuals
+
+## Fixed Snapshots 4–8 — Settings & Lock Screen
+
+### Added
+- Lock screen
+- Settings page
+- Persistent settings manager
+- User-name personalization
+
+### Improved
+Successive snapshots refined lock-screen themes, accents, translucency, clock rendering and startup behavior.
+
+## 1.2 — Liquid Glass
+
+### Added
+- Refractive glass helpers
+- Glass-frame utilities
+- Glass icon-button styling
+
+### Improved
+Header, sidebar, stat cards, task cards and main pages received the liquid-glass visual pass.
+
+## 1.1 — Patch
+
+### Improved
+- Theme-change propagation
+- Animation start/stop behavior
+- Dashboard refresh handling
+- Tasks, Calendar and Statistics updates
+- Sakura animation system
+
+## First Release
+
+Initial Flux foundation with Dashboard, Tasks, Calendar, Statistics, SQLite storage and the first theme/animation system.
