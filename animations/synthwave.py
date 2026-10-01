@@ -20,7 +20,7 @@ class SynthwaveBackground(QWidget):
     # the horizon, a glowing perspective grid that scrolls toward you, and
     # a pink haze where they meet. Stars come from the StarField layer.
 
-    FRAME_MS = 33
+    FRAME_MS = 16
 
     HORIZON = 0.80
 
@@ -41,6 +41,7 @@ class SynthwaveBackground(QWidget):
         self.timer = QTimer(self)
 
         self.timer.timeout.connect(self._tick)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
 
         self.timer.start(self.FRAME_MS)
 
