@@ -20,7 +20,7 @@ class AstroBackground(QWidget):
     # sways along the part of its orbit that is actually on screen, so the
     # whole system stays visible instead of planets sailing out of frame.
 
-    FRAME_MS = 33
+    FRAME_MS = 16
 
     # name, orbit (fraction of the window diagonal), radius px, rgb,
     # sway period in seconds, start phase, has rings
@@ -67,6 +67,7 @@ class AstroBackground(QWidget):
         self.timer = QTimer(self)
 
         self.timer.timeout.connect(self._tick)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
 
         self.timer.start(self.FRAME_MS)
 
