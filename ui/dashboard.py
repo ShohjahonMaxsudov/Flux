@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QSizePolicy
 )
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 
 from ui.header import Header
 from ui.statcard import StatCard
