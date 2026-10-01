@@ -516,7 +516,7 @@ class NotesPage(QWidget):
 
         if self.stack.currentWidget() is self.listView:
 
-            self.load_notes()
+            QTimer.singleShot(0, self.load_notes)
 
 
 
