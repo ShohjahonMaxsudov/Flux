@@ -1,22 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
-#
-# Build with:  pyinstaller Flux.spec
-# Output:      dist/Flux/Flux.exe  (plus the support files next to it —
-#              the whole dist/Flux folder is the app; keep it together,
-#              or wrap it with installer.iss to get a single Setup.exe)
+# Flux Windows build specification.
+# Build with: python -m PyInstaller Flux.spec --noconfirm
 
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_submodules
 
 project_root = Path.cwd()
 
+hiddenimports = []
+for package in ("themes", "animations", "ui", "utils", "database"):
+    hiddenimports += collect_submodules(package)
+
 a = Analysis(
-    ['main.py'],
+    ["main.py"],
     pathex=[str(project_root)],
     binaries=[],
     datas=[
-        ('assets/icon.ico', 'assets'),
+        ("assets", "assets"),
+        ("database/flux.db", "database"),
     ],
-    hiddenimports=[],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -25,35 +28,34 @@ a = Analysis(
     optimize=0,
 )
 
-pyz = PYZ(a.pure, a.zipped_data)
+pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
     a.scripts,
     [],
     exclude_binaries=True,
-    name='Flux',
+    name="Flux",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,          # windowed app, no background console window
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='assets/icon.ico',
-    version='version_info.txt',
+    icon="assets/flux.ico",
+    version="version_info.txt",
 )
 
 coll = COLLECT(
     exe,
     a.binaries,
-    a.zipfiles,
     a.datas,
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='Flux',
+    name="Flux",
 )
