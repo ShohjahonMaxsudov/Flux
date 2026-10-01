@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QFrame
 )
 
+from PySide6.QtCore import QTimer
+
 from utils.task_manager import TaskManager
 from utils.focus_manager import FocusManager
 from utils.glass_effects import RefractiveGlassMixin, GlassFrame
@@ -397,4 +399,4 @@ Keep building consistency"""
 
         super().showEvent(event)
 
-        self.refresh_stats()
+        QTimer.singleShot(0, self.refresh_stats)
