@@ -151,6 +151,30 @@ jobs:
           - **Flux-portable-windows.zip** — portable Windows build
           EOF
 
+          cat > .release-notes/v1.0.3.md <<'EOF'
+          ## Flux v1.0.3 — Navigation & 60 FPS Patch
+
+          ### Navigation
+          - Larger dock icons and a larger active glass bubble.
+          - Wider/taller dock with cleaner spacing and a stronger theme-reactive rim.
+          - Removed the hard-edged bottom panel.
+          - Replaced it with a feathered bottom atmosphere fade that starts fully transparent.
+          - Removed duplicate active-pill animation calls.
+
+          ### Performance
+          - Removed all live background grabbing from the dock.
+          - Dashboard, Tasks, Notes, Calendar, Focus and Statistics now render first and refresh on the next event-loop tick.
+          - Tab switches no longer wait on synchronous refresh work before becoming visible.
+
+          ### Motion
+          - Aurora, Stars, Sakura, Astro and Synthwave now use precise ~60 FPS timers instead of the previous ~30 FPS timers.
+          - Particle and Sakura movement is time-scaled so the higher frame rate keeps the same animation speed.
+
+          ### Downloads
+          - **FluxSetup.exe** — Windows installer
+          - **Flux-portable-windows.zip** — portable Windows build
+          EOF
+
       - name: Create or update historical releases
         shell: bash
         run: |
@@ -179,16 +203,20 @@ jobs:
           fi
 
           if gh release view "v1.0.2" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "v1.0.2"               --repo "$GITHUB_REPOSITORY"               --title "Flux v1.0.2 — Emergency Dock Hotfix"               --notes-file ".release-notes/v1.0.2.md"               --latest
+            gh release edit "v1.0.2"               --repo "$GITHUB_REPOSITORY"               --latest=false
+          fi
+
+          if gh release view "v1.0.3" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "v1.0.3"               --repo "$GITHUB_REPOSITORY"               --title "Flux v1.0.3 — Navigation & 60 FPS Patch"               --notes-file ".release-notes/v1.0.3.md"               --latest
           else
-            gh release create "v1.0.2"               --repo "$GITHUB_REPOSITORY"               --target main               --title "Flux v1.0.2 — Emergency Dock Hotfix"               --notes-file ".release-notes/v1.0.2.md"               --latest
+            gh release create "v1.0.3"               --repo "$GITHUB_REPOSITORY"               --target main               --title "Flux v1.0.3 — Navigation & 60 FPS Patch"               --notes-file ".release-notes/v1.0.3.md"               --latest
           fi
 
       - name: Download current Windows build
         shell: bash
         run: |
           mkdir -p current-build
-          gh run download 36830179357             --repo "$GITHUB_REPOSITORY"             --name "Flux-windows-build"             --dir current-build
+          gh run download 36831677743             --repo "$GITHUB_REPOSITORY"             --name "Flux-windows-build"             --dir current-build
 
           find current-build -maxdepth 2 -type f -print
 
@@ -201,4 +229,4 @@ jobs:
           test -n "$SETUP"
           test -n "$PORTABLE"
 
-          gh release upload "v1.0.2"             "$SETUP#FluxSetup.exe"             "$PORTABLE#Flux-portable-windows.zip"             --repo "$GITHUB_REPOSITORY"             --clobber
+          gh release upload "v1.0.3"             "$SETUP#FluxSetup.exe"             "$PORTABLE#Flux-portable-windows.zip"             --repo "$GITHUB_REPOSITORY"             --clobber
