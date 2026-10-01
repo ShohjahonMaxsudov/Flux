@@ -40,7 +40,11 @@ class TaskManager:
         # and "category" into the priority slot. Keyword args make that
         # class of bug impossible even if either signature changes again.
 
-        self.database.add_task(
+        # Returns the new row's id, so a caller that needs it right away
+        # (Undo, after re-creating a deleted task) doesn't have to guess
+        # it back out of get_all_tasks().
+
+        return self.database.add_task(
             title=title,
             time=time,
             task_date=task_date,
@@ -295,6 +299,76 @@ class TaskManager:
             task_id
         )
 
+
+
+    # -----------------------------
+    # WEEKLY PROGRESS
+    # -----------------------------
+
+
+    def get_week_completion(self, goal=35):
+
+        # Counts of tasks COMPLETED on each day of the current
+        # calendar week (Monday first, matching the concept board),
+        # keyed by weekday index 0=Mon..6=Sun, plus the week's running
+        # total against a goal for the ring underneath the chart.
+
+        monday = (
+            datetime.now()
+            - timedelta(days=datetime.now().weekday())
+        ).date()
+
+        counts = [0] * 7
+
+        rows = self.database.get_tasks()
+
+        for row in rows:
+
+            if not row["completed"]:
+                continue
+
+            stamp = row["completed_at"] if "completed_at" in row.keys() else None
+
+            if not stamp:
+                continue
+
+            try:
+
+                day = datetime.strptime(
+                    stamp,
+                    "%Y-%m-%d %H:%M:%S"
+                ).date()
+
+            except (ValueError, TypeError):
+
+                continue
+
+            offset = (day - monday).days
+
+            if 0 <= offset < 7:
+
+                counts[offset] += 1
+
+
+        total = sum(counts)
+
+        percent = (
+            round((total / goal) * 100)
+            if goal
+            else 0
+        )
+
+        return {
+
+            "counts": counts,
+
+            "total": total,
+
+            "goal": goal,
+
+            "percent": max(0, min(100, percent))
+
+        }
 
 
     # -----------------------------

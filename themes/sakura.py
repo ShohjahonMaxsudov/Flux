@@ -132,3 +132,32 @@ border-radius:4px;
 }}
 
 """
+
+
+
+# ---------------------------------------------------------
+# PICKER METADATA / STYLE / ATMOSPHERE
+# ---------------------------------------------------------
+
+from themes import base
+
+
+NAME = "Sakura"
+
+ICON = "blossom"
+
+DESCRIPTION = "Cherry blossom dusk, deep plum and pink."
+
+TAGLINE = "Blossom dusk"
+
+
+class Style(base.Style):
+
+    pass
+
+
+class Atmosphere(base.Atmosphere):
+
+    KIND = "sakura"
+
+    BANNER = "mountains"

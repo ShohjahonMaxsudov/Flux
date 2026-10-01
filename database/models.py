@@ -103,6 +103,8 @@ class Task:
 
     created_at: str = ""
 
+    completed_at: str = ""
+
 
     @classmethod
     def from_row(cls, row):
@@ -161,7 +163,9 @@ class Task:
 
             completed=bool(get("completed") or 0),
 
-            created_at=get("created_at") or ""
+            created_at=get("created_at") or "",
+
+            completed_at=get("completed_at") or ""
 
         )
 

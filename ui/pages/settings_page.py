@@ -1,4 +1,5 @@
 from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -6,19 +7,36 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QCheckBox
+    QCheckBox,
+    QColorDialog,
+    QSlider,
+    QSpinBox,
+    QScrollArea,
+    QFrame
 )
 
 from utils.settings_manager import SettingsManager
 from utils.glass_effects import GlassFrame
 from ui.icons import IconGlyph
+from ui.branding import CreditsFooter
+from ui.theme_picker import ThemePicker
 from themes.manager import ThemeManager
+from themes.custom_state import CustomState
 
 class SettingsPage(QWidget):
 
     # Emitted when the user's name is saved, so app.py can push it into
     # the Header's greeting immediately instead of waiting for restart.
     nameChanged = Signal(str)
+
+    # Emitted when the "reduce background motion" toggle changes, so
+    # app.py can start/stop the animated backgrounds immediately.
+    reduceMotionChanged = Signal(bool)
+
+    # Emitted when the weekly task goal changes, so the Dashboard's
+    # Weekly Progress ring updates immediately instead of waiting for
+    # the next task to be added or completed.
+    weeklyGoalChanged = Signal(int)
 
 
     def __init__(self):
@@ -42,6 +60,33 @@ class SettingsPage(QWidget):
         root.addWidget(self.title)
 
         root.addWidget(self.subtitle)
+
+
+        # The page grew past one screen once Custom joined the theme
+        # grid and Startup picked up the motion/goal controls — scroll
+        # the cards instead of letting them get squeezed to fit.
+
+        self.contentHost = QWidget()
+
+        content = QVBoxLayout(self.contentHost)
+
+        content.setContentsMargins(0, 0, 6, 0)
+
+        content.setSpacing(18)
+
+        self.contentScroll = QScrollArea()
+
+        self.contentScroll.setWidgetResizable(True)
+
+        self.contentScroll.setFrameShape(QFrame.Shape.NoFrame)
+
+        self.contentScroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+
+        self.contentScroll.setWidget(self.contentHost)
+
+        root.addWidget(self.contentScroll, 1)
 
 
 
@@ -94,7 +139,7 @@ class SettingsPage(QWidget):
 
         profileLayout.addLayout(row)
 
-        root.addWidget(self.profileCard)
+        content.addWidget(self.profileCard)
 
 
 
@@ -115,63 +160,71 @@ class SettingsPage(QWidget):
 
         self.appearanceHeading = QLabel("Appearance")
 
-        themeRow = QHBoxLayout()
+        # One card per theme, each a live miniature of that theme.
 
-        themeRow.setSpacing(10)
+        self.themePicker = ThemePicker()
 
-        self.themeButtons = {}
-
-        self.themeIcons = {}
-
-        for key, icon_name, label in (
-            ("dark", "moon", "Dark"),
-            ("light", "sun", "Light"),
-            ("sakura", "blossom", "Sakura")
-        ):
-
-            btn = QPushButton("")
-
-            btn.setCheckable(True)
-
-            btn.setMinimumHeight(40)
-
-            btnLayout = QHBoxLayout(btn)
-
-            btnLayout.setContentsMargins(14, 0, 14, 0)
-
-            btnLayout.setSpacing(8)
-
-            btnLayout.setAlignment(Qt.AlignCenter)
-
-            glyph = IconGlyph(icon_name, size=16, color="white", stroke_width=1.7)
-
-            glyph.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-
-            textLabel = QLabel(label)
-
-            textLabel.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-
-            textLabel.setStyleSheet("background:transparent; border:none; font-weight:600;")
-
-            btnLayout.addWidget(glyph)
-
-            btnLayout.addWidget(textLabel)
-
-            btn.clicked.connect(
-                lambda checked, k=key: self.select_theme(k)
-            )
-
-            self.themeButtons[key] = btn
-
-            self.themeIcons[key] = glyph
-
-            themeRow.addWidget(btn)
+        self.themePicker.themeSelected.connect(
+            self.select_theme
+        )
 
         appearanceLayout.addWidget(self.appearanceHeading)
 
-        appearanceLayout.addLayout(themeRow)
+        appearanceLayout.addWidget(self.themePicker)
 
-        root.addWidget(self.appearanceCard)
+
+        # The Custom tile above is selected the same way as any other
+        # theme; these two controls are what actually shape it — tap
+        # the swatch to pick a primary color, drag the slider for how
+        # much glow/aurora the theme carries. Both apply live.
+
+        customizeRow = QHBoxLayout()
+
+        customizeRow.setSpacing(10)
+
+        self.customizeLabel = QLabel("Custom theme")
+
+        self.colorSwatch = QPushButton()
+
+        self.colorSwatch.setFixedSize(28, 28)
+
+        self.colorSwatch.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.colorSwatch.setToolTip("Choose the Custom theme's primary color")
+
+        self.colorSwatch.clicked.connect(self.pick_custom_color)
+
+        self.glowLabel = QLabel("Glow")
+
+        self.glowSlider = QSlider(Qt.Orientation.Horizontal)
+
+        self.glowSlider.setRange(0, 100)
+
+        self.glowSlider.setFixedWidth(140)
+
+        self.glowSlider.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.glowSlider.valueChanged.connect(self.on_glow_dragging)
+
+        self.glowSlider.sliderReleased.connect(self.on_glow_released)
+
+        customizeRow.addWidget(self.customizeLabel)
+
+        customizeRow.addSpacing(6)
+
+        customizeRow.addWidget(self.colorSwatch)
+
+        customizeRow.addSpacing(20)
+
+        customizeRow.addWidget(self.glowLabel)
+
+        customizeRow.addWidget(self.glowSlider)
+
+        customizeRow.addStretch()
+
+        appearanceLayout.addLayout(customizeRow)
+
+        content.addWidget(self.appearanceCard)
 
 
 
@@ -208,16 +261,70 @@ class SettingsPage(QWidget):
             "Takes effect the next time you open Flux."
         )
 
+        self.motionToggle = QCheckBox(
+            "Reduce background motion"
+        )
+
+        self.motionToggle.setChecked(
+            self.settings_manager.get("reduce_motion", "0") == "1"
+        )
+
+        self.motionToggle.toggled.connect(
+            self.on_reduce_motion_toggled
+        )
+
+        self.motionNote = QLabel(
+            "Keeps each theme's look, just holds the animation still."
+        )
+
+        goalRow = QHBoxLayout()
+
+        goalRow.setSpacing(10)
+
+        self.goalLabel = QLabel("Weekly task goal")
+
+        self.goalSpin = QSpinBox()
+
+        self.goalSpin.setRange(1, 200)
+
+        self.goalSpin.setValue(
+            int(self.settings_manager.get("weekly_goal", "35") or 35)
+        )
+
+        self.goalSpin.setFixedWidth(90)
+
+        self.goalSpin.valueChanged.connect(self.on_weekly_goal_changed)
+
+        goalRow.addWidget(self.goalLabel)
+
+        goalRow.addWidget(self.goalSpin)
+
+        goalRow.addStretch()
+
         startupLayout.addWidget(self.startupHeading)
 
         startupLayout.addWidget(self.lockToggle)
 
         startupLayout.addWidget(self.lockNote)
 
-        root.addWidget(self.startupCard)
+        startupLayout.addWidget(self.motionToggle)
+
+        startupLayout.addWidget(self.motionNote)
+
+        startupLayout.addLayout(goalRow)
+
+        content.addWidget(self.startupCard)
 
 
-        root.addStretch()
+        content.addStretch()
+
+
+        # Tiny signature strip pinned to the bottom of the page. Purely
+        # decorative - it ignores the mouse, so it can't be clicked.
+
+        self.credits = CreditsFooter()
+
+        content.addWidget(self.credits, 0, Qt.AlignHCenter)
 
 
         self.apply_theme()
@@ -243,20 +350,82 @@ class SettingsPage(QWidget):
         self.sync_theme_buttons()
 
 
+    def on_reduce_motion_toggled(self, enabled):
+
+        self.settings_manager.set("reduce_motion", "1" if enabled else "0")
+
+        self.reduceMotionChanged.emit(enabled)
+
+
+    def on_weekly_goal_changed(self, value):
+
+        self.settings_manager.set("weekly_goal", str(value))
+
+        self.weeklyGoalChanged.emit(value)
+
+
+    def pick_custom_color(self):
+
+        initial = QColor(CustomState.get()[0])
+
+        color = QColorDialog.getColor(initial, self, "Choose a primary color")
+
+        if not color.isValid():
+
+            return
+
+        CustomState.set(primary=color.name())
+
+        self.sync_custom_controls()
+
+        self.apply_custom_live()
+
+
+    def on_glow_dragging(self, value):
+
+        # Persist as the user drags, but don't repaint the whole app on
+        # every tick — that happens once, on release (see below).
+
+        CustomState.set(glow=value / 100)
+
+
+    def on_glow_released(self):
+
+        self.apply_custom_live()
+
+
+    def apply_custom_live(self):
+
+        if ThemeManager.current_name != "custom":
+
+            self.select_theme("custom")
+
+        else:
+
+            ThemeManager.refresh_current()
+
+
+    def sync_custom_controls(self):
+
+        primary, glow = CustomState.get()
+
+        self.colorSwatch.setStyleSheet(
+            f"background:{primary}; border-radius:14px; border:2px solid white;"
+        )
+
+        self.glowSlider.blockSignals(True)
+
+        self.glowSlider.setValue(int(glow * 100))
+
+        self.glowSlider.blockSignals(False)
+
+
 
     def sync_theme_buttons(self):
 
-        for key, btn in self.themeButtons.items():
-
-            btn.setChecked(
-                key == ThemeManager.current_name
-            )
-
-            self.themeIcons[key].setColor(
-                "white"
-                if key == ThemeManager.current_name
-                else ThemeManager.get().Colors.TEXT
-            )
+        self.themePicker.set_current(
+            ThemeManager.current_name
+        )
 
 
 
@@ -353,37 +522,36 @@ class SettingsPage(QWidget):
         )
 
 
-        for key, btn in self.themeButtons.items():
-
-            btn.setStyleSheet(
-                f"""
-                QPushButton{{
-
-                    background:{theme.Colors.SURFACE_ALT};
-
-                    color:{theme.Colors.TEXT};
-
-                    border:1px solid {theme.Colors.BORDER};
-
-                    border-radius:12px;
-
-                    padding:10px 16px;
-
-                }}
-
-                QPushButton:checked{{
-
-                    background:{theme.Colors.PRIMARY};
-
-                    color:white;
-
-                    border:1px solid {theme.Colors.PRIMARY};
-
-                }}
-                """
-            )
+        self.themePicker.refresh()
 
         self.sync_theme_buttons()
+
+        self.sync_custom_controls()
+
+        self.customizeLabel.setStyleSheet(
+            f"color:{theme.Colors.TEXT}; font-size:13px; font-weight:600; background:transparent; border:none;"
+        )
+
+        self.glowLabel.setStyleSheet(
+            f"color:{theme.Colors.TEXT_SECONDARY}; font-size:12px; background:transparent; border:none;"
+        )
+
+        self.glowSlider.setStyleSheet(
+            f"""
+            QSlider::groove:horizontal{{
+                height:4px;
+                background:{theme.Colors.BORDER};
+                border-radius:2px;
+            }}
+            QSlider::handle:horizontal{{
+                background:{theme.Colors.PRIMARY};
+                width:14px;
+                height:14px;
+                margin:-5px 0;
+                border-radius:7px;
+            }}
+            """
+        )
 
 
         self.lockToggle.setStyleSheet(
@@ -392,6 +560,35 @@ class SettingsPage(QWidget):
 
         self.lockNote.setStyleSheet(
             f"color:{theme.Colors.TEXT_SECONDARY}; font-size:12px; background:transparent; border:none;"
+        )
+
+        self.motionToggle.setStyleSheet(
+            f"color:{theme.Colors.TEXT}; font-size:14px; background:transparent; border:none;"
+        )
+
+        self.motionNote.setStyleSheet(
+            f"color:{theme.Colors.TEXT_SECONDARY}; font-size:12px; background:transparent; border:none;"
+        )
+
+        self.goalLabel.setStyleSheet(
+            f"color:{theme.Colors.TEXT}; font-size:14px; background:transparent; border:none;"
+        )
+
+        self.goalSpin.setStyleSheet(
+            f"""
+            QSpinBox{{
+                color:{theme.Colors.TEXT};
+                background:{theme.Colors.SURFACE_ALT};
+                border:1px solid {theme.Colors.BORDER};
+                border-radius:8px;
+                padding:4px 6px;
+            }}
+            """
+        )
+
+
+        self.credits.set_color(
+            theme.Colors.TEXT
         )
 
 

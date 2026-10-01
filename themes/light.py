@@ -111,3 +111,31 @@ QScrollBar::handle:vertical {{
 }}
 
 """
+
+
+# ---------------------------------------------------------
+# PICKER METADATA / STYLE / ATMOSPHERE
+# ---------------------------------------------------------
+
+from themes import base
+
+
+NAME = "Light"
+
+ICON = "sun"
+
+DESCRIPTION = "Clean and bright, calm white glass."
+
+TAGLINE = "Clean and bright"
+
+
+class Style(base.Style):
+
+    pass
+
+
+class Atmosphere(base.Atmosphere):
+
+    KIND = "none"
+
+    BANNER = "plain"

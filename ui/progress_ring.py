@@ -23,7 +23,23 @@ class ProgressRing(QWidget):
 
         self._thickness = thickness
 
+        self._label = None
+
         self.setFixedSize(diameter, diameter)
+
+
+
+    def setLabel(self, text):
+
+        # Overrides the default "{value}%" center text — the Focus
+        # timer uses this to show mm:ss instead of a percentage, on the
+        # same ring widget the sidebar and Weekly Progress card use.
+
+        if text != self._label:
+
+            self._label = text
+
+            self.update()
 
 
 
@@ -111,5 +127,5 @@ class ProgressRing(QWidget):
         painter.drawText(
             self.rect(),
             Qt.AlignCenter,
-            f"{self._value}%"
+            self._label if self._label is not None else f"{self._value}%"
         )

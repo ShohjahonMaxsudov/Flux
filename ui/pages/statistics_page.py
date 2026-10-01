@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
 )
 
 from utils.task_manager import TaskManager
+from utils.focus_manager import FocusManager
 from utils.glass_effects import RefractiveGlassMixin, GlassFrame
 from themes.manager import ThemeManager
 
@@ -122,6 +123,8 @@ class StatisticsPage(QWidget):
 
 
         self.manager = TaskManager()
+
+        self.focus_manager = FocusManager()
 
 
         root = QVBoxLayout(
@@ -358,12 +361,20 @@ class StatisticsPage(QWidget):
         )
 
 
+        week_minutes = self.focus_manager.get_week_minutes()
+
+        hours, minutes = divmod(week_minutes, 60)
+
+        focus_text = f"{hours}h {minutes}m" if hours else f"{minutes}m"
+
         self.info.setText(
             f"""Completed tasks: {stats["completed"]}
 
 Pending tasks: {stats["pending"]}
 
 Current streak: {stats["streak"]} days
+
+Focus time this week: {focus_text}
 
 Keep building consistency"""
         )

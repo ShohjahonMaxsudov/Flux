@@ -1,44 +1,38 @@
-; Inno Setup script for Flux.
-; Build the app first (pyinstaller Flux.spec / build.bat), THEN compile
-; this with Inno Setup (https://jrsoftware.org/isinfo.php) to get
-; installer_output\FluxSetup.exe — a normal Windows installer with a
-; wizard, Start Menu / Desktop shortcuts, and an uninstaller.
-
+; Flux Windows installer
 #define MyAppName "Flux"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Flux"
 #define MyAppExeName "Flux.exe"
 
 [Setup]
-AppId={{2F6B9C6E-6E2A-4E3A-9B7D-5A7DFF0F1FA0}}
+AppId={{A9BEE687-0FB0-467A-9595-62145116D2C1}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\{#MyAppName}
-DefaultGroupName={#MyAppName}
+DefaultDirName={localappdata}\Programs\Flux
+DefaultGroupName=Flux
 DisableProgramGroupPage=yes
-OutputDir=installer_output
+PrivilegesRequired=lowest
+OutputDir=release
 OutputBaseFilename=FluxSetup
+SetupIconFile=assets\flux.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2
 SolidCompression=yes
-SetupIconFile=assets\icon.ico
 WizardStyle=modern
-UninstallDisplayIcon={app}\{#MyAppExeName}
+ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
-[Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
-
 [Tasks]
-Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
 
 [Files]
-Source: "dist\Flux\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\Flux\*"; DestDir: "{app}"; Excludes: "database\flux.db"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\Flux\database\flux.db"; DestDir: "{app}\database"; Flags: ignoreversion onlyifdoesntexist
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{group}\Flux"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
+Name: "{autodesktop}\Flux"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch Flux"; WorkingDir: "{app}"; Flags: nowait postinstall skipifsilent

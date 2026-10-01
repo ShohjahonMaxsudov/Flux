@@ -2,6 +2,8 @@ from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QPainter, QPainterPath, QLinearGradient, QColor, QPen
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QFrame
 
+from themes.manager import ThemeManager
+
 
 def apply_soft_shadow(
     widget,
@@ -25,6 +27,40 @@ def apply_soft_shadow(
     widget.setGraphicsEffect(effect)
 
 
+def apply_glow(
+    widget,
+    color,
+    blur=28,
+    y_offset=4,
+    alpha=140
+):
+
+    # A coloured halo instead of the black drop shadow - used on primary
+    # buttons and accents so they seem to emit light. Replaces any effect
+    # already on the widget; call again to recolour it after a theme
+    # change (the effect object is reused).
+
+    effect = widget.graphicsEffect()
+
+    if not isinstance(effect, QGraphicsDropShadowEffect):
+
+        effect = QGraphicsDropShadowEffect(widget)
+
+        widget.setGraphicsEffect(effect)
+
+    c = QColor(color)
+
+    c.setAlpha(max(0, min(255, int(alpha))))
+
+    effect.setBlurRadius(blur)
+
+    effect.setOffset(0, y_offset)
+
+    effect.setColor(c)
+
+    return effect
+
+
 def paint_refractive_border(
     widget,
     radius=18,
@@ -39,6 +75,11 @@ def paint_refractive_border(
     # this is painted by hand on top of the widget's normal (QSS-driven)
     # appearance — call it from the end of a paintEvent, after
     # super().paintEvent(event).
+
+    strength *= ThemeManager.style().RIM
+
+    if strength <= 0.01:
+        return
 
     rect = QRectF(
         widget.rect()

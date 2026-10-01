@@ -443,6 +443,352 @@ def _notebook(p, w, h, color):
     p.drawLine(QPointF(w * 0.2, h * 0.28), QPointF(w * 0.32, h * 0.28))
 
 
+def _void(p, w, h, color):
+
+    # An eclipse: thin ring around a solid core.
+
+    center = QPointF(w * 0.5, h * 0.5)
+
+    p.drawEllipse(center, w * 0.36, w * 0.36)
+
+    p.setBrush(color)
+
+    p.drawEllipse(center, w * 0.13, w * 0.13)
+
+def _wave(p, w, h, color):
+
+    # Two stacked swells.
+
+    for y in (0.40, 0.66):
+
+        path = QPainterPath()
+
+        path.moveTo(w * 0.12, h * y)
+
+        path.cubicTo(
+            w * 0.26, h * (y - 0.16),
+            w * 0.38, h * (y - 0.16),
+            w * 0.5, h * y
+        )
+
+        path.cubicTo(
+            w * 0.62, h * (y + 0.16),
+            w * 0.74, h * (y + 0.16),
+            w * 0.88, h * y
+        )
+
+        p.drawPath(path)
+
+def _arrow_right(p, w, h, color):
+
+    p.drawLine(QPointF(w * 0.2, h * 0.5), QPointF(w * 0.8, h * 0.5))
+
+    path = QPainterPath()
+
+    path.moveTo(w * 0.56, h * 0.26)
+
+    path.lineTo(w * 0.8, h * 0.5)
+
+    path.lineTo(w * 0.56, h * 0.74)
+
+    p.drawPath(path)
+
+def _planet(p, w, h, color):
+
+    # A ringed planet.
+
+    center = QPointF(w * 0.5, h * 0.5)
+
+    p.drawEllipse(center, w * 0.22, w * 0.22)
+
+    p.save()
+
+    p.translate(center)
+
+    p.rotate(-22)
+
+    p.drawEllipse(QPointF(0, 0), w * 0.44, w * 0.13)
+
+    p.restore()
+
+def _aurora(p, w, h, color):
+
+    # An arch of light with falling rays.
+
+    arch = QPainterPath()
+
+    arch.moveTo(w * 0.1, h * 0.62)
+
+    arch.cubicTo(w * 0.25, h * 0.14, w * 0.75, h * 0.14, w * 0.9, h * 0.62)
+
+    p.drawPath(arch)
+
+    for x, top in ((0.3, 0.36), (0.5, 0.26), (0.7, 0.36)):
+
+        p.drawLine(QPointF(w * x, h * top), QPointF(w * x, h * 0.86))
+
+def _sunset(p, w, h, color):
+
+    p.drawArc(QRectF(w * 0.22, h * 0.26, w * 0.56, h * 0.56), 0, 180 * 16)
+
+    p.drawLine(QPointF(w * 0.1, h * 0.54), QPointF(w * 0.9, h * 0.54))
+
+    p.drawLine(QPointF(w * 0.24, h * 0.68), QPointF(w * 0.76, h * 0.68))
+
+    p.drawLine(QPointF(w * 0.36, h * 0.82), QPointF(w * 0.64, h * 0.82))
+
+def _tree(p, w, h, color):
+
+    for top, half, bottom in ((0.12, 0.2, 0.44), (0.28, 0.28, 0.66), (0.44, 0.36, 0.86)):
+
+        path = QPainterPath()
+
+        path.moveTo(w * 0.5, h * top)
+
+        path.lineTo(w * (0.5 - half), h * bottom)
+
+        path.lineTo(w * (0.5 + half), h * bottom)
+
+        path.closeSubpath()
+
+        p.drawPath(path)
+
+def _snowflake(p, w, h, color):
+
+    import math
+
+    center = QPointF(w * 0.5, h * 0.5)
+
+    for i in range(3):
+
+        angle = i * math.pi / 3 + math.pi / 2
+
+        dx = math.cos(angle) * w * 0.38
+
+        dy = math.sin(angle) * w * 0.38
+
+        p.drawLine(QPointF(center.x() - dx, center.y() - dy), QPointF(center.x() + dx, center.y() + dy))
+
+def _contrast(p, w, h, color):
+
+    # A circle, right half filled.
+
+    center = QPointF(w * 0.5, h * 0.5)
+
+    p.drawEllipse(center, w * 0.36, w * 0.36)
+
+    p.setBrush(color)
+
+    path = QPainterPath()
+
+    path.moveTo(w * 0.5, h * 0.14)
+
+    path.arcTo(QRectF(w * 0.14, h * 0.14, w * 0.72, h * 0.72), 90, -180)
+
+    path.closeSubpath()
+
+    p.drawPath(path)
+
+def _timer(p, w, h, color):
+
+    # A stopwatch: ring, a small crown button on top, a hand pointing
+    # to about 20 minutes past.
+
+    center = QPointF(w * 0.5, h * 0.56)
+
+    p.drawEllipse(center, w * 0.34, w * 0.34)
+
+    p.drawLine(QPointF(w * 0.5, h * 0.17), QPointF(w * 0.5, h * 0.09))
+
+    p.drawLine(QPointF(w * 0.40, h * 0.09), QPointF(w * 0.60, h * 0.09))
+
+    p.drawLine(center, QPointF(w * 0.66, h * 0.42))
+
+
+def _sort(p, w, h, color):
+
+    # Two arrows, one up one down — the universal "ascending/descending"
+    # affordance.
+
+    p.drawLine(QPointF(w * 0.32, h * 0.78), QPointF(w * 0.32, h * 0.22))
+
+    top = QPainterPath()
+
+    top.moveTo(w * 0.20, h * 0.36)
+
+    top.lineTo(w * 0.32, h * 0.22)
+
+    top.lineTo(w * 0.44, h * 0.36)
+
+    p.drawPath(top)
+
+    p.drawLine(QPointF(w * 0.68, h * 0.22), QPointF(w * 0.68, h * 0.78))
+
+    bottom = QPainterPath()
+
+    bottom.moveTo(w * 0.56, h * 0.64)
+
+    bottom.lineTo(w * 0.68, h * 0.78)
+
+    bottom.lineTo(w * 0.80, h * 0.64)
+
+    p.drawPath(bottom)
+
+
+def _undo(p, w, h, color):
+
+    # A curved arrow sweeping back to the left.
+
+    path = QPainterPath()
+
+    path.moveTo(w * 0.78, h * 0.66)
+
+    path.cubicTo(w * 0.78, h * 0.30, w * 0.30, h * 0.20, w * 0.24, h * 0.42)
+
+    p.drawPath(path)
+
+    head = QPainterPath()
+
+    head.moveTo(w * 0.34, h * 0.26)
+
+    head.lineTo(w * 0.22, h * 0.42)
+
+    head.lineTo(w * 0.40, h * 0.50)
+
+    p.drawPath(head)
+
+
+def _palette(p, w, h, color):
+
+    # A painter's palette with a thumb-hole and a few colour dabs.
+
+    path = QPainterPath()
+
+    path.moveTo(w * 0.5, h * 0.14)
+
+    path.cubicTo(w * 0.86, h * 0.14, w * 0.90, h * 0.60, w * 0.62, h * 0.62)
+
+    path.cubicTo(w * 0.50, h * 0.63, w * 0.52, h * 0.78, w * 0.38, h * 0.80)
+
+    path.cubicTo(w * 0.14, h * 0.82, w * 0.14, h * 0.14, w * 0.5, h * 0.14)
+
+    p.drawPath(path)
+
+    p.setBrush(color)
+
+    for cx, cy, r in (
+        (0.37, 0.32, 0.045),
+        (0.52, 0.28, 0.045),
+        (0.66, 0.36, 0.045),
+    ):
+
+        p.drawEllipse(QPointF(w * cx, h * cy), w * r, w * r)
+
+    p.setBrush(Qt.NoBrush)
+
+
+def _play(p, w, h, color):
+
+    p.setBrush(color)
+
+    path = QPainterPath()
+
+    path.moveTo(w * 0.32, h * 0.20)
+
+    path.lineTo(w * 0.32, h * 0.80)
+
+    path.lineTo(w * 0.80, h * 0.5)
+
+    path.closeSubpath()
+
+    p.drawPath(path)
+
+    p.setBrush(Qt.NoBrush)
+
+
+def _pause(p, w, h, color):
+
+    p.setBrush(color)
+
+    p.drawRoundedRect(QRectF(w * 0.28, h * 0.20, w * 0.16, h * 0.60), 2, 2)
+
+    p.drawRoundedRect(QRectF(w * 0.56, h * 0.20, w * 0.16, h * 0.60), 2, 2)
+
+    p.setBrush(Qt.NoBrush)
+
+
+def _reset(p, w, h, color):
+
+    # A ring with a gap, closed by an arrowhead — "start over".
+
+    rect = QRectF(w * 0.18, h * 0.18, w * 0.64, h * 0.64)
+
+    p.drawArc(rect, 40 * 16, 260 * 16)
+
+    head = QPainterPath()
+
+    head.moveTo(w * 0.66, h * 0.16)
+
+    head.lineTo(w * 0.80, h * 0.24)
+
+    head.lineTo(w * 0.68, h * 0.36)
+
+    p.drawPath(head)
+
+
+def _close(p, w, h, color):
+
+    p.drawLine(QPointF(w * 0.26, h * 0.26), QPointF(w * 0.74, h * 0.74))
+
+    p.drawLine(QPointF(w * 0.74, h * 0.26), QPointF(w * 0.26, h * 0.74))
+
+
+def _bell(p, w, h, color):
+
+    path = QPainterPath()
+
+    path.moveTo(w * 0.28, h * 0.62)
+
+    path.lineTo(w * 0.28, h * 0.40)
+
+    path.cubicTo(w * 0.28, h * 0.20, w * 0.72, h * 0.20, w * 0.72, h * 0.40)
+
+    path.lineTo(w * 0.72, h * 0.62)
+
+    path.lineTo(w * 0.80, h * 0.72)
+
+    path.lineTo(w * 0.20, h * 0.72)
+
+    path.closeSubpath()
+
+    p.drawPath(path)
+
+    p.drawLine(QPointF(w * 0.44, h * 0.80), QPointF(w * 0.56, h * 0.80))
+
+
+def _alert(p, w, h, color):
+
+    path = QPainterPath()
+
+    path.moveTo(w * 0.5, h * 0.16)
+
+    path.lineTo(w * 0.86, h * 0.80)
+
+    path.lineTo(w * 0.14, h * 0.80)
+
+    path.closeSubpath()
+
+    p.drawPath(path)
+
+    p.drawLine(QPointF(w * 0.5, h * 0.40), QPointF(w * 0.5, h * 0.60))
+
+    p.setBrush(color)
+
+    p.drawEllipse(QPointF(w * 0.5, h * 0.70), w * 0.025, w * 0.025)
+
+    p.setBrush(Qt.NoBrush)
+
+
 _ICONS = {
 
     "home": _home,
@@ -484,5 +830,43 @@ _ICONS = {
     "sparkle": _sparkle,
 
     "notebook": _notebook,
+
+    "void": _void,
+
+    "wave": _wave,
+
+    "arrow_right": _arrow_right,
+
+    "planet": _planet,
+
+    "aurora": _aurora,
+
+    "sunset": _sunset,
+
+    "tree": _tree,
+
+    "snowflake": _snowflake,
+
+    "contrast": _contrast,
+
+    "timer": _timer,
+
+    "sort": _sort,
+
+    "undo": _undo,
+
+    "palette": _palette,
+
+    "play": _play,
+
+    "pause": _pause,
+
+    "reset": _reset,
+
+    "close": _close,
+
+    "bell": _bell,
+
+    "alert": _alert,
 
 }

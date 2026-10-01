@@ -10,7 +10,9 @@ from PySide6.QtWidgets import (
 )
 
 from ui.taskcard import TaskCard
+from ui.add_task_dialog import AddTaskDialog
 from ui.edit_task_dialog import EditTaskDialog
+from ui.toast import notify
 from utils.task_manager import TaskManager
 from utils.glass_effects import GlassFrame
 from themes.manager import ThemeManager
@@ -97,6 +99,30 @@ class TasksPage(QWidget):
 
 
 
+        self.sort = QComboBox()
+
+
+        self.sort.addItems(
+            [
+                "Priority",
+                "Newest",
+                "Oldest",
+                "Due Date",
+                "Title A-Z"
+            ]
+        )
+
+
+        self.addButton = QPushButton(
+            "+ Add Task"
+        )
+
+
+        self.addButton.clicked.connect(
+            self.open_add_task
+        )
+
+
         self.refreshButton = QPushButton(
             "Refresh"
         )
@@ -115,6 +141,16 @@ class TasksPage(QWidget):
 
         tools.addWidget(
             self.filter
+        )
+
+
+        tools.addWidget(
+            self.sort
+        )
+
+
+        tools.addWidget(
+            self.addButton
         )
 
 
@@ -168,6 +204,11 @@ class TasksPage(QWidget):
 
 
         self.filter.currentTextChanged.connect(
+            self.load_tasks
+        )
+
+
+        self.sort.currentTextChanged.connect(
             self.load_tasks
         )
 
@@ -250,6 +291,40 @@ class TasksPage(QWidget):
                 color:{theme.Colors.TEXT};
 
                 selection-background-color:{theme.Colors.PRIMARY};
+
+            }}
+            """
+        )
+
+
+        self.sort.setStyleSheet(
+            self.filter.styleSheet()
+        )
+
+
+        self.addButton.setStyleSheet(
+            f"""
+            QPushButton{{
+
+                background:{theme.Colors.GLASS};
+
+                color:{theme.Colors.TEXT};
+
+                border:1px solid {theme.Colors.BORDER};
+
+                border-radius:12px;
+
+                padding:10px 18px;
+
+                font-weight:bold;
+
+            }}
+
+            QPushButton:hover{{
+
+                background:{theme.Colors.GLASS_HOVER};
+
+                border:1px solid {theme.Colors.PRIMARY};
 
             }}
             """
@@ -372,6 +447,31 @@ class TasksPage(QWidget):
             tasks = [task for task in tasks if task.priority == "High"]
 
 
+        sort_mode = self.sort.currentText()
+
+        if sort_mode == "Newest":
+
+            tasks = sorted(tasks, key=lambda t: t.id, reverse=True)
+
+        elif sort_mode == "Oldest":
+
+            tasks = sorted(tasks, key=lambda t: t.id)
+
+        elif sort_mode == "Due Date":
+
+            tasks = sorted(
+                tasks,
+                key=lambda t: (t.task_date or "9999-99-99", t.time or "99:99")
+            )
+
+        elif sort_mode == "Title A-Z":
+
+            tasks = sorted(tasks, key=lambda t: t.title.lower())
+
+        # else "Priority" - the order get_all_tasks() already returned
+        # (completed last, high priority first), unchanged.
+
+
         theme = ThemeManager.get()
 
 
@@ -441,7 +541,7 @@ class TasksPage(QWidget):
                     lambda t=task:
 
                     self.on_delete_task(
-                        t.id
+                        t
                     )
 
                 )
@@ -484,14 +584,96 @@ class TasksPage(QWidget):
 
     def on_delete_task(
         self,
-        task_id
+        task
     ):
 
+        snapshot = dict(
+            title=task.title,
+            time=task.time,
+            task_date=task.task_date,
+            priority=task.priority,
+            category=task.category,
+            description=task.description,
+            color=task.color,
+            reminder=task.reminder,
+            repeat=task.repeat,
+            important=task.important
+        )
+
+        was_completed = task.completed
+
+        title = task.title
+
         self.task_manager.remove_task(
-            task_id
+            task.id
         )
 
         self.load_tasks()
+
+        notify(
+            f'Deleted "{title}"' if title else "Task deleted",
+            "info",
+            action=("Undo", lambda: self._undo_delete(snapshot, was_completed))
+        )
+
+
+    def _undo_delete(self, snapshot, was_completed):
+
+        new_id = self.task_manager.create_task(**snapshot)
+
+        if was_completed and new_id:
+
+            self.task_manager.complete_task(new_id, True)
+
+        self.load_tasks()
+
+        notify("Task restored", "success")
+
+
+    def open_add_task(self):
+
+        dialog = AddTaskDialog()
+
+        dialog.taskCreated.connect(
+            self.on_task_created
+        )
+
+        dialog.exec()
+
+
+    def on_task_created(
+        self,
+        title,
+        time,
+        priority,
+        category,
+        task_date,
+        description,
+        color,
+        reminder,
+        repeat,
+        important
+    ):
+
+        self.task_manager.create_task(
+            title=title,
+            time=time,
+            task_date=task_date,
+            priority=priority,
+            category=category,
+            description=description,
+            color=color,
+            reminder=reminder,
+            repeat=repeat,
+            important=important
+        )
+
+        self.load_tasks()
+
+        notify(
+            f'Added "{title}"' if title else "Task added",
+            "success"
+        )
 
 
 
@@ -544,3 +726,8 @@ class TasksPage(QWidget):
         )
 
         self.load_tasks()
+
+        notify(
+            f'Updated "{title}"' if title else "Task updated",
+            "success"
+        )

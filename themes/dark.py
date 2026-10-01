@@ -1,13 +1,30 @@
 """
-Flux — Dark Theme
------------------
-Central design system for the entire application.
+Flux - Dark Theme  (the "Aurora" look)
+--------------------------------------
+Deep navy base, translucent glass surfaces with a cool tint, tinted stat
+cards, glowing accents, a slow aurora and a sparse starfield. Cleaner
+grading and more contrast than the old flat dark.
 
-Every UI component should import values from here instead of
-hardcoding colors, spacing, or fonts.
+Every UI component should read its values from here instead of hardcoding
+colors, spacing, or fonts.
 """
 
 from dataclasses import dataclass
+
+from themes import base
+from themes.base import (  # noqa: F401  (re-exported design tokens)
+    Spacing, Radius, Font, Icons, Animation, Shadow, Window,
+    dark_family_stylesheet,
+)
+
+
+NAME = "Dark"
+
+ICON = "moon"
+
+DESCRIPTION = "Deep navy with a soft aurora glow and a quiet starfield."
+
+TAGLINE = "Aurora glow"
 
 
 # ---------------------------------------------------------
@@ -16,17 +33,17 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Colors:
-    BACKGROUND = "#05070D"
-    SECONDARY = "#08111F"
+    BACKGROUND = "#0A0F18"
+    SECONDARY = "#111827"
 
-    SURFACE = "#0B1323"
-    SURFACE_ALT = "#101A2B"
+    SURFACE = "#0E1524"
+    SURFACE_ALT = "#131B2E"
 
-    GLASS = "rgba(255,255,255,0.05)"
-    GLASS_HOVER = "rgba(255,255,255,0.08)"
+    GLASS = "rgba(140,165,255,0.055)"
+    GLASS_HOVER = "rgba(140,165,255,0.105)"
 
-    BORDER = "rgba(255,255,255,0.08)"
-    BORDER_ACTIVE = "#5A7DFF"
+    BORDER = "rgba(150,175,255,0.15)"
+    BORDER_ACTIVE = "#7690FF"
 
     PRIMARY = "#5A7DFF"
     GREEN = "#4BE8A5"
@@ -34,8 +51,8 @@ class Colors:
     ORANGE = "#FFC857"
     RED = "#FF6B6B"
 
-    TEXT = "#FFFFFF"
-    TEXT_SECONDARY = "#8E9AAF"
+    TEXT = "#F2F5FF"
+    TEXT_SECONDARY = "#8E9BB8"
 
     SUCCESS = "#4BE8A5"
     WARNING = "#FFC857"
@@ -43,176 +60,54 @@ class Colors:
 
 
 # ---------------------------------------------------------
-# SPACING
+# STYLE + ATMOSPHERE
 # ---------------------------------------------------------
 
-@dataclass(frozen=True)
-class Spacing:
-    XS = 4
-    SM = 8
-    MD = 16
-    LG = 24
-    XL = 32
-    XXL = 48
+class Style(base.Style):
+
+    CARD_TINT = 0.15
+
+    ICON_STYLE = "ring"
+
+    PILL_STYLE = "tint"
+
+    NAV_STYLE = "glass"
+
+    GLOW = 0.65
+
+    STAT_ACCENTS = ("PRIMARY", "GREEN", "ORANGE", "PURPLE")
+
+    PANEL_TINT = True
+
+    RIM = 0.7
 
 
-# ---------------------------------------------------------
-# RADIUS
-# ---------------------------------------------------------
+class Atmosphere(base.Atmosphere):
 
-@dataclass(frozen=True)
-class Radius:
-    SMALL = 10
-    MEDIUM = 16
-    LARGE = 22
-    XLARGE = 28
+    KIND = "aurora"
 
+    BLOBS = (
+        (90, 125, 255, 58, 520, 0.16, 0.20, 0.10, 90, 60),
+        (40, 205, 190, 32, 480, 0.30, 0.95, 0.08, 110, 50),
+        (150, 105, 255, 34, 440, 0.88, 0.12, 0.12, 80, 70),
+    )
 
-# ---------------------------------------------------------
-# FONT
-# ---------------------------------------------------------
+    RIBBONS = (
+        (70, 170, 255, 46, 0.20, 0.05, 0.11, 0.22, 0.90, 0.0, -0.10),
+        (60, 235, 200, 30, 0.34, 0.06, 0.09, 0.17, 0.70, 2.1, -0.16),
+    )
 
-@dataclass(frozen=True)
-class Font:
-    FAMILY = "Segoe UI"
+    PARTICLES = "stars"
 
-    SMALL = 10
-    BODY = 11
-    SUBTITLE = 13
-    TITLE = 18
-    HEADER = 28
+    PARTICLE_COUNT = 60
 
+    PARTICLE_ALPHA = 0.5
 
-# ---------------------------------------------------------
-# ICON SIZES
-# ---------------------------------------------------------
+    PARTICLE_COLOR = (255, 255, 255)
 
-@dataclass(frozen=True)
-class Icons:
-    SMALL = 16
-    MEDIUM = 20
-    LARGE = 24
-    XLARGE = 32
+    SHOOTING_STARS = True
+
+    BANNER = "mountains"
 
 
-# ---------------------------------------------------------
-# ANIMATION
-# ---------------------------------------------------------
-
-@dataclass(frozen=True)
-class Animation:
-    FAST = 120
-    NORMAL = 220
-    SLOW = 380
-
-    FPS = 60
-
-
-# ---------------------------------------------------------
-# SHADOWS
-# ---------------------------------------------------------
-
-@dataclass(frozen=True)
-class Shadow:
-    BLUR = 40
-    OFFSET = 0
-    ALPHA = 70
-
-
-# ---------------------------------------------------------
-# WINDOW
-# ---------------------------------------------------------
-
-@dataclass(frozen=True)
-class Window:
-    MIN_WIDTH = 1200
-    MIN_HEIGHT = 760
-
-    START_WIDTH = 1450
-    START_HEIGHT = 900
-
-
-# ---------------------------------------------------------
-# GLOBAL STYLESHEET
-# ---------------------------------------------------------
-
-GLOBAL_STYLESHEET = f"""
-QMainWindow {{
-    background: {Colors.BACKGROUND};
-}}
-
-QWidget {{
-    background: transparent;
-    color: {Colors.TEXT};
-    font-family: "{Font.FAMILY}";
-    font-size: {Font.BODY}pt;
-}}
-
-QFrame {{
-    background: transparent;
-    border: none;
-}}
-
-QScrollArea {{
-    background: transparent;
-    border: none;
-}}
-
-QScrollArea > QWidget > QWidget {{
-    background: transparent;
-}}
-
-QScrollBar:vertical {{
-    width: 8px;
-    background: transparent;
-}}
-
-QScrollBar::handle:vertical {{
-    background: rgba(255,255,255,0.12);
-    border-radius: 4px;
-}}
-
-QScrollBar::handle:vertical:hover {{
-    background: rgba(255,255,255,0.22);
-}}
-
-QScrollBar::add-line:vertical,
-QScrollBar::sub-line:vertical,
-QScrollBar::add-page:vertical,
-QScrollBar::sub-page:vertical {{
-    background: transparent;
-}}
-
-QPushButton {{
-    background: transparent;
-    border: none;
-}}
-
-QLineEdit {{
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 10px 14px;
-    color: white;
-}}
-
-QLineEdit:focus {{
-    border: 1px solid {Colors.PRIMARY};
-}}
-
-QCheckBox {{
-    spacing: 8px;
-}}
-
-QCheckBox::indicator {{
-    width: 18px;
-    height: 18px;
-}}
-
-QToolTip {{
-    background: #101827;
-    color: white;
-    border: 1px solid rgba(255,255,255,0.08);
-    padding: 6px;
-}}
-"""
+GLOBAL_STYLESHEET = dark_family_stylesheet(Colors)

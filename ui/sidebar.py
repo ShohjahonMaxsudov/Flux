@@ -9,9 +9,11 @@ from PySide6.QtWidgets import (
 )
 
 from themes.manager import ThemeManager
+from utils.color_utils import lighten, rgba
 from utils.glass_effects import RefractiveGlassMixin, apply_soft_shadow
 from ui.progress_ring import ProgressRing
 from ui.icons import IconGlyph
+from ui.branding import FluxLogo
 
 
 
@@ -122,8 +124,10 @@ class SidebarButton(QPushButton):
         theme = ThemeManager.get()
 
 
+        glass = ThemeManager.style().NAV_STYLE == "glass"
+
         icon_color = (
-            "white"
+            (lighten(theme.Colors.PRIMARY, 135) if glass else "white")
             if self.active
             else theme.Colors.TEXT_SECONDARY
         )
@@ -135,22 +139,45 @@ class SidebarButton(QPushButton):
 
         if self.active:
 
+            if glass:
+
+                # Tinted glass: a wash of the accent that fades to the
+                # right, with a rim - the "selected" state in the concept.
+
+                background = (
+                    "qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+                    f"stop:0 {rgba(theme.Colors.PRIMARY, 0.36)}, "
+                    f"stop:1 {rgba(theme.Colors.PRIMARY, 0.10)})"
+                )
+
+                border = rgba(theme.Colors.PRIMARY, 0.55)
+
+                text_color = theme.Colors.TEXT
+
+            else:
+
+                background = theme.Colors.PRIMARY
+
+                border = theme.Colors.BORDER_ACTIVE
+
+                text_color = "white"
+
             self.setStyleSheet(
                 f"""
                 QPushButton{{
 
-                    background:{theme.Colors.PRIMARY};
+                    background:{background};
 
                     border-radius:14px;
 
-                    border:1px solid {theme.Colors.BORDER_ACTIVE};
+                    border:1px solid {border};
 
                 }}
                 """
             )
 
             self.textLabel.setStyleSheet(
-                "color:white; font-size:14px; font-weight:700; background:transparent;"
+                f"color:{text_color}; font-size:14px; font-weight:700; background:transparent;"
             )
 
 
@@ -239,8 +266,9 @@ class Sidebar(RefractiveGlassMixin, QFrame):
 
 
 
-        self.logo = QLabel(
-            "FLUX"
+        self.logo = FluxLogo(
+            width=150,
+            variant="light" if ThemeManager.current_name == "light" else "dark"
         )
 
 
@@ -248,10 +276,15 @@ class Sidebar(RefractiveGlassMixin, QFrame):
             "Organize Today"
         )
 
+        self.subtitle.setAlignment(
+            Qt.AlignHCenter
+        )
+
 
 
         layout.addWidget(
-            self.logo
+            self.logo,
+            alignment=Qt.AlignHCenter
         )
 
 
@@ -275,6 +308,8 @@ class Sidebar(RefractiveGlassMixin, QFrame):
             ("home", "Dashboard", "Dashboard"),
 
             ("tasks", "Tasks", "Tasks"),
+
+            ("timer", "Focus", "Focus"),
 
             ("calendar", "Calendar", "Calendar"),
 
@@ -435,21 +470,12 @@ class Sidebar(RefractiveGlassMixin, QFrame):
 
 
 
-        self.logo.setStyleSheet(
-            f"""
-            QLabel{{
+        # The logo is an image, so it doesn't take a stylesheet; it just
+        # needs the right variant for the active theme (white wordmark on
+        # dark/sakura, ink wordmark on light).
 
-                color:{theme.Colors.TEXT};
-
-                font-size:30px;
-
-                font-weight:900;
-
-                letter-spacing:3px;
-
-            }}
-
-            """
+        self.logo.set_theme(
+            ThemeManager.current_name
         )
 
 
@@ -469,13 +495,29 @@ class Sidebar(RefractiveGlassMixin, QFrame):
 
 
 
+        if ThemeManager.style().PANEL_TINT:
+
+            card_background = (
+                "qlineargradient(x1:0, y1:0, x2:1, y2:1, "
+                f"stop:0 {rgba(theme.Colors.PRIMARY, 0.16)}, "
+                f"stop:1 {rgba(theme.Colors.PURPLE, 0.07)})"
+            )
+
+            card_border = rgba(theme.Colors.PRIMARY, 0.26)
+
+        else:
+
+            card_background = theme.Colors.SURFACE_ALT
+
+            card_border = theme.Colors.BORDER
+
         self.progressCard.setStyleSheet(
             f"""
             QFrame#sidebarProgressCard{{
 
-                background:{theme.Colors.SURFACE_ALT};
+                background:{card_background};
 
-                border:1px solid {theme.Colors.BORDER};
+                border:1px solid {card_border};
 
                 border-radius:18px;
 

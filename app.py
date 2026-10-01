@@ -2,9 +2,12 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
     QHBoxLayout,
+    QLabel,
+    QGraphicsOpacityEffect,
+    QApplication,
 )
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 from PySide6.QtGui import QPainter, QColor, QLinearGradient
 
 
@@ -17,6 +20,8 @@ from ui.pages.tasks_page import TasksPage
 from ui.pages.calendar_page import CalendarPage
 from ui.pages.statistics_page import StatisticsPage
 from ui.pages.settings_page import SettingsPage
+from ui.pages.focus_page import FocusPage
+from ui.toast import ToastHost
 from ui.pages.notes_page import NotesPage
 
 from ui.lock_screen import LockScreen
@@ -25,6 +30,8 @@ from ui.lock_screen import LockScreen
 from animations.aurora import AuroraBackground
 from animations.stars import StarField
 from animations.sakura import SakuraBackground
+from animations.astro import AstroBackground
+from animations.synthwave import SynthwaveBackground
 
 from themes.manager import ThemeManager
 from utils.settings_manager import SettingsManager
@@ -36,6 +43,8 @@ class Flux(QMainWindow):
     def __init__(self):
 
         super().__init__()
+
+        self._theme_fade = None
 
         self.lockScreen = None
 
@@ -49,6 +58,8 @@ class Flux(QMainWindow):
         startup_settings = SettingsManager()
 
         ThemeManager.current_name = startup_settings.get_theme()
+
+        self.reduce_motion = startup_settings.get("reduce_motion", "0") == "1"
 
         startup_settings.close()
 
@@ -102,6 +113,16 @@ class Flux(QMainWindow):
 
 
         self.sakura = SakuraBackground(
+            self.central
+        )
+
+
+        self.astro = AstroBackground(
+            self.central
+        )
+
+
+        self.synthwave = SynthwaveBackground(
             self.central
         )
 
@@ -170,6 +191,8 @@ class Flux(QMainWindow):
 
         self.settingsPage = SettingsPage()
 
+        self.focusPage = FocusPage()
+
         self.settingsPage.nameChanged.connect(
             self.dashboardPage.dashboard.set_user_name
         )
@@ -185,6 +208,12 @@ class Flux(QMainWindow):
         self.pages.add_page(
             "Tasks",
             self.tasksPage
+        )
+
+
+        self.pages.add_page(
+            "Focus",
+            self.focusPage
         )
 
 
@@ -242,11 +271,39 @@ class Flux(QMainWindow):
         self.uiContainer.raise_()
 
 
+        # Small "task added / deleted / undo" notifications, stacked
+        # bottom-right over everything.
+
+        self.toastHost = ToastHost(self.central)
+
+
+        self.settingsPage.reduceMotionChanged.connect(
+            self.set_reduce_motion
+        )
+
+
+        self.settingsPage.weeklyGoalChanged.connect(
+            lambda _value: self.dashboardPage.dashboard.update_statistics()
+        )
+
+
         self.apply_background_theme()
 
 
+        # Snapshot the old look right before the switch so on_theme_changed
+        # can cross-fade from it to the new theme.
+
+        ThemeManager.subscribe_before(
+            self.begin_theme_fade
+        )
+
         ThemeManager.subscribe(
             self.on_theme_changed
+        )
+
+
+        ThemeManager.subscribe_style(
+            self.on_theme_style_changed
         )
 
 
@@ -320,45 +377,44 @@ class Flux(QMainWindow):
 
     def apply_background_theme(self):
 
-        theme_name = ThemeManager.current_name
+        # What plays behind the UI is described by the active theme's
+        # Atmosphere (themes/base.py):
+        #
+        #   "aurora"    colour clouds + ribbons (+ stars / bubbles / embers...)
+        #   "sakura"    falling petals
+        #   "astro"     the solar system (+ stars and meteors)
+        #   "synthwave" neon sunset and grid (+ stars)
+        #   "none"      a calm flat surface
 
+        atmosphere = ThemeManager.atmosphere()
 
-        if theme_name == "sakura":
+        kind = atmosphere.KIND
 
-            self.sakura.show()
+        scenes = {
+            "sakura": self.sakura,
+            "astro": self.astro,
+            "synthwave": self.synthwave,
+        }
 
-            self.sakura.start()
+        for scene_kind, scene in scenes.items():
 
-            self.sakura.raise_()
+            if scene_kind == kind:
 
-            self.aurora.hide()
+                scene.show()
 
-            self.aurora.stop()
+                scene.start()
 
-            self.stars.hide()
+                scene.lower()
 
-            self.stars.stop()
+            else:
 
+                scene.hide()
 
-        elif theme_name == "light":
+                scene.stop()
 
-            # Light theme wants a clean, calm surface, not an animated
-            # backdrop competing with white glass cards.
+        if kind == "aurora":
 
-            self.sakura.hide()
-
-            self.sakura.stop()
-
-            self.aurora.hide()
-
-            self.aurora.stop()
-
-            self.stars.hide()
-
-            self.stars.stop()
-
-
-        else:
+            self.aurora.configure(atmosphere)
 
             self.aurora.show()
 
@@ -366,15 +422,56 @@ class Flux(QMainWindow):
 
             self.aurora.lower()
 
+        else:
+
+            self.aurora.hide()
+
+            self.aurora.stop()
+
+        # Sakura draws its own petals and "none" (Light) is deliberately
+        # calm; everything else can carry a particle layer on top.
+
+        wants_particles = (
+            kind in ("aurora", "astro", "synthwave")
+            and atmosphere.PARTICLES != "none"
+        )
+
+        if wants_particles:
+
+            self.stars.configure(atmosphere)
+
             self.stars.show()
 
             self.stars.start()
 
             self.stars.raise_()
 
-            self.sakura.hide()
+        else:
 
-            self.sakura.stop()
+            self.stars.hide()
+
+            self.stars.stop()
+
+        if kind == "sakura":
+
+            self.sakura.raise_()
+
+        if self.reduce_motion:
+
+            # Keep whichever scene is showing as a still frame instead
+            # of an animation - stopping the QTimer just freezes the
+            # last painted frame, so the look doesn't change, only the
+            # motion does.
+
+            for widget in (
+                self.aurora,
+                self.stars,
+                self.sakura,
+                self.astro,
+                self.synthwave,
+            ):
+
+                widget.stop()
 
 
         # Whichever background layer is active, the actual UI must stay
@@ -385,6 +482,9 @@ class Flux(QMainWindow):
 
         self.uiContainer.raise_()
 
+        if self._theme_fade is not None:
+
+            self._theme_fade["overlay"].raise_()
 
         # Same reasoning applies to the lock screen: raise_() puts a
         # background widget at the very top of the whole sibling stack
@@ -398,9 +498,114 @@ class Flux(QMainWindow):
 
             self.lockScreen.raise_()
 
+        # Toasts sit above everything else — uiContainer (and the lock
+        # screen, if it's up) just got raised above this widget too, so
+        # without re-raising it here every theme change would silently
+        # bury it behind the page content again.
 
+        self.toastHost.raise_()
+
+
+    def set_reduce_motion(self, enabled):
+
+        self.reduce_motion = enabled
+
+        self.apply_background_theme()
+
+
+
+    def begin_theme_fade(self, old_name, new_name):
+
+        # Called *before* the theme switches. Grab the current look into a
+        # snapshot and lay it over the window; everything then restyles
+        # underneath it in the same event-loop turn (so the new look is
+        # never visible un-faded), and the snapshot dissolves away.
+
+        if not self.isVisible() or self.central.width() < 10:
+            return
+
+        if self._theme_fade is not None:
+
+            self._theme_fade["overlay"].deleteLater()
+
+            self._theme_fade["animation"].stop()
+
+            self._theme_fade = None
+
+        overlay = QLabel(self.central)
+
+        overlay.setPixmap(self.central.grab())
+
+        overlay.setGeometry(self.central.rect())
+
+        overlay.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        )
+
+        effect = QGraphicsOpacityEffect(overlay)
+
+        overlay.setGraphicsEffect(effect)
+
+        overlay.show()
+
+        overlay.raise_()
+
+        animation = QPropertyAnimation(effect, b"opacity", overlay)
+
+        animation.setDuration(520)
+
+        animation.setStartValue(1.0)
+
+        animation.setEndValue(0.0)
+
+        animation.setEasingCurve(QEasingCurve.InOutCubic)
+
+        def finish():
+
+            overlay.deleteLater()
+
+            if self._theme_fade and self._theme_fade["overlay"] is overlay:
+
+                self._theme_fade = None
+
+        animation.finished.connect(finish)
+
+        self._theme_fade = {"overlay": overlay, "animation": animation}
+
+        # Start on the next loop turn: the restyle that follows this call
+        # blocks the event loop for a moment, and starting now would eat
+        # the first part of the fade.
+
+        QTimer.singleShot(0, animation.start)
 
     def on_theme_changed(self, name):
+
+        # The global stylesheet used to be re-applied only by the header's
+        # theme button, so switching from Settings or the lock screen left
+        # the old theme's app-wide QSS in place. Do it here, once, for
+        # every path.
+
+        self._restyle_everything()
+
+    def on_theme_style_changed(self, name):
+
+        # The Custom theme's color/glow being nudged live, not a switch
+        # to a different theme — same repaint, but begin_theme_fade was
+        # never called for this path, so there's no cross-fade overlay
+        # to worry about; the snap update itself reads as responsive
+        # tuning rather than a jarring transition.
+
+        self._restyle_everything()
+
+    def _restyle_everything(self):
+
+        app = QApplication.instance()
+
+        if app:
+
+            app.setStyleSheet(
+                ThemeManager.stylesheet()
+            )
 
         self.apply_background_theme()
 
@@ -416,6 +621,8 @@ class Flux(QMainWindow):
         self.dashboardPage.dashboard.refresh_theme()
 
         self.tasksPage.refresh_theme()
+
+        self.focusPage.refresh_theme()
 
         self.statisticsPage.refresh_theme()
 
@@ -440,6 +647,8 @@ class Flux(QMainWindow):
             "Dashboard": "Dashboard",
 
             "Tasks": "Tasks",
+
+            "Focus": "Focus",
 
             "Calendar": "Calendar",
 
@@ -484,6 +693,16 @@ class Flux(QMainWindow):
         )
 
 
+        self.astro.resize(
+            size
+        )
+
+
+        self.synthwave.resize(
+            size
+        )
+
+
         self.uiContainer.resize(
             size
         )
@@ -494,6 +713,9 @@ class Flux(QMainWindow):
             self.lockScreen.resize(
                 size
             )
+
+
+        self.toastHost.reposition()
 
 
         super().resizeEvent(

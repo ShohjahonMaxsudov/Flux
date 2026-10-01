@@ -1,38 +1,7 @@
-import sys
-import os
-import shutil
 import sqlite3
 from pathlib import Path
+from datetime import datetime
 
-
-def _app_data_dir():
-    """
-    Where Flux keeps its database once it's running as a packaged app
-    (PyInstaller build) rather than from source.
-
-    A frozen app can end up installed somewhere read-only (Program
-    Files) and, if built --onefile, actually runs from a temp folder
-    that gets wiped after every session. So `Path(__file__).parent`
-    - fine for `python main.py` - is not a safe place to keep a
-    persistent SQLite file once the app is packaged. Every OS has its
-    own writable, per-user folder for exactly this.
-    """
-
-    app_name = "Flux"
-
-    if sys.platform == "win32":
-        base = (
-            os.environ.get("LOCALAPPDATA")
-            or os.environ.get("APPDATA")
-            or str(Path.home())
-        )
-        return Path(base) / app_name
-
-    if sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support" / app_name
-
-    base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
-    return Path(base) / app_name
 
 
 class Database:
@@ -40,7 +9,9 @@ class Database:
 
     def __init__(self):
 
-        self.db_path = self._resolve_db_path()
+        self.db_path = (
+            Path(__file__).parent / "flux.db"
+        )
 
         self.connection = None
 
@@ -49,34 +20,6 @@ class Database:
         self.create_tables()
 
         self.upgrade_database()
-
-
-    def _resolve_db_path(self):
-
-        # Running from source (`python main.py`): unchanged behavior,
-        # a flux.db right next to this file.
-        if not getattr(sys, "frozen", False):
-            return Path(__file__).parent / "flux.db"
-
-        # Running as a packaged app: use a per-user data folder that
-        # is guaranteed writable and persists between runs/updates.
-        data_dir = _app_data_dir()
-        data_dir.mkdir(parents=True, exist_ok=True)
-
-        db_path = data_dir / "flux.db"
-
-        # One-time migration: if a dev flux.db ended up bundled next
-        # to the source and this is the first run, carry its data
-        # over instead of starting empty.
-        if not db_path.exists():
-            bundled = Path(__file__).parent / "flux.db"
-            if bundled.exists():
-                try:
-                    shutil.copy2(bundled, db_path)
-                except OSError:
-                    pass
-
-        return db_path
 
 
 
@@ -229,6 +172,38 @@ class Database:
         return cursor.lastrowid
 
 
+    # -------------------------
+    # FOCUS SESSIONS
+    # -------------------------
+
+    def add_focus_session(self, minutes, session_date):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO focus_sessions (minutes, session_date)
+            VALUES (?, ?)
+            """,
+            (minutes, session_date)
+        )
+
+        self.connection.commit()
+
+        return cursor.lastrowid
+
+
+    def get_focus_sessions(self):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            "SELECT * FROM focus_sessions ORDER BY id DESC"
+        )
+
+        return cursor.fetchall()
+
+
     def get_notes(self):
 
         cursor = self.connection.cursor()
@@ -331,7 +306,10 @@ class Database:
                 "TEXT DEFAULT 'Never'",
 
             "important":
-                "INTEGER DEFAULT 0"
+                "INTEGER DEFAULT 0",
+
+            "completed_at":
+                "TIMESTAMP"
 
         }
 
@@ -348,6 +326,16 @@ class Database:
                     """
                 )
 
+
+
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS focus_sessions ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "minutes INTEGER NOT NULL, "
+            "session_date TEXT NOT NULL, "
+            "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            ")"
+        )
 
 
         cursor.execute(
@@ -431,6 +419,9 @@ class Database:
 
 
         self.connection.commit()
+
+
+        return cursor.lastrowid
 
 
 
@@ -529,7 +520,8 @@ class Database:
             """
             UPDATE tasks
 
-            SET completed = ?
+            SET completed = ?,
+                completed_at = ?
 
             WHERE id = ?
 
@@ -537,6 +529,7 @@ class Database:
 
             (
                 1 if completed else 0,
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S") if completed else None,
                 task_id
             )
 

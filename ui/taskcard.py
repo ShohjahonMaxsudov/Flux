@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from themes.manager import ThemeManager
+from utils.color_utils import lighten, rgba
 from utils.glass_effects import RefractiveGlassMixin
 
 
@@ -356,13 +357,38 @@ class TaskCard(RefractiveGlassMixin, QFrame):
             "font-size:11px; font-weight:700; border:none;"
         )
 
-        self.priorityPill.setStyleSheet(
-            f"background:{priority_color}; color:white; {pill_base}"
-        )
+        if ThemeManager.style().PILL_STYLE == "tint":
 
-        self.categoryPill.setStyleSheet(
-            f"background:{accent}; color:white; {pill_base}"
-        )
+            # Translucent, colour-tinted pills with a thin rim - they
+            # read as light sources on glass rather than stickers.
+
+            def tinted(color):
+
+                return (
+                    f"background:{rgba(color, 0.16)}; "
+                    f"color:{lighten(color, 128)}; "
+                    f"border:1px solid {rgba(color, 0.42)}; "
+                    "border-radius:10px; padding:2px 10px; "
+                    "font-size:11px; font-weight:700;"
+                )
+
+            self.priorityPill.setStyleSheet(
+                tinted(priority_color)
+            )
+
+            self.categoryPill.setStyleSheet(
+                tinted(accent)
+            )
+
+        else:
+
+            self.priorityPill.setStyleSheet(
+                f"background:{priority_color}; color:white; {pill_base}"
+            )
+
+            self.categoryPill.setStyleSheet(
+                f"background:{accent}; color:white; {pill_base}"
+            )
 
 
         self.menuButton.setStyleSheet(

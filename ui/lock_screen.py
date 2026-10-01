@@ -161,11 +161,9 @@ class LockScreen(QWidget):
 
         self.themeButtons = {}
 
-        for key, icon_name in (
-            ("dark", "moon"),
-            ("light", "sun"),
-            ("sakura", "blossom")
-        ):
+        for key in ThemeManager.names():
+
+            icon_name = ThemeManager.icon(key)
 
             btn = QPushButton("")
 
@@ -174,6 +172,8 @@ class LockScreen(QWidget):
             btn.setCursor(Qt.PointingHandCursor)
 
             btn.setCheckable(True)
+
+            btn.setToolTip(ThemeManager.label(key))
 
             btnLayout = QHBoxLayout(btn)
 
