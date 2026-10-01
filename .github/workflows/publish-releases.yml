@@ -126,6 +126,31 @@ jobs:
           - **Flux-portable-windows.zip** — portable Windows build
           EOF
 
+          cat > .release-notes/v1.0.2.md <<'EOF'
+          ## Flux v1.0.2 — Emergency Dock Hotfix
+
+          This hotfix replaces the first Frost Dock implementation after it introduced heavy lag and a cluttered navigation look.
+
+          ### Performance fixes
+          - Removed the expensive 90 ms multi-layer live capture.
+          - Moved blur outside the dock into a separate bottom atmosphere layer.
+          - Reduced blur sampling to a lightweight low-resolution pass.
+          - Removed page-wide fade effects during navigation.
+          - Fixed blur positioning and stacking after the dock refactor.
+
+          ### Dock redesign
+          - Bigger, clearer line icons.
+          - One moving active pill instead of multiple busy selected states.
+          - Cleaner glass capsule with restrained borders and highlights.
+          - Removed labels, progress rail and decorative center line.
+          - Settings remains separated as a system control.
+          - Added a full-width bottom gradient blur inspired by modern mobile docks while keeping Flux's own theme-reactive identity.
+
+          ### Downloads
+          - **FluxSetup.exe** — Windows installer
+          - **Flux-portable-windows.zip** — portable Windows build
+          EOF
+
       - name: Create or update historical releases
         shell: bash
         run: |
@@ -150,16 +175,20 @@ jobs:
         shell: bash
         run: |
           if gh release view "v1.0.1" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "v1.0.1"               --repo "$GITHUB_REPOSITORY"               --title "Flux — Themes & Quality-of-Life Update"               --notes-file ".release-notes/v1.0.1.md"               --latest
+            gh release edit "v1.0.1"               --repo "$GITHUB_REPOSITORY"               --latest=false
+          fi
+
+          if gh release view "v1.0.2" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "v1.0.2"               --repo "$GITHUB_REPOSITORY"               --title "Flux v1.0.2 — Emergency Dock Hotfix"               --notes-file ".release-notes/v1.0.2.md"               --latest
           else
-            gh release create "v1.0.1"               --repo "$GITHUB_REPOSITORY"               --target main               --title "Flux — Themes & Quality-of-Life Update"               --notes-file ".release-notes/v1.0.1.md"               --latest
+            gh release create "v1.0.2"               --repo "$GITHUB_REPOSITORY"               --target main               --title "Flux v1.0.2 — Emergency Dock Hotfix"               --notes-file ".release-notes/v1.0.2.md"               --latest
           fi
 
       - name: Download current Windows build
         shell: bash
         run: |
           mkdir -p current-build
-          gh run download 36823840741             --repo "$GITHUB_REPOSITORY"             --name "Flux-windows-build"             --dir current-build
+          gh run download 36830179357             --repo "$GITHUB_REPOSITORY"             --name "Flux-windows-build"             --dir current-build
 
           find current-build -maxdepth 2 -type f -print
 
@@ -172,4 +201,4 @@ jobs:
           test -n "$SETUP"
           test -n "$PORTABLE"
 
-          gh release upload "v1.0.1"             "$SETUP#FluxSetup.exe"             "$PORTABLE#Flux-portable-windows.zip"             --repo "$GITHUB_REPOSITORY"             --clobber
+          gh release upload "v1.0.2"             "$SETUP#FluxSetup.exe"             "$PORTABLE#Flux-portable-windows.zip"             --repo "$GITHUB_REPOSITORY"             --clobber
