@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QScrollArea
 )
 
-from PySide6.QtCore import Qt, QDate
+from PySide6.QtCore import Qt, QDate, QTimer
 from PySide6.QtGui import QTextCharFormat, QColor, QFont
 
 from utils.task_manager import TaskManager
@@ -294,10 +294,15 @@ class CalendarPage(QWidget):
 
         super().showEvent(event)
 
+        QTimer.singleShot(0, self._refresh_visible_calendar)
+
+
+
+    def _refresh_visible_calendar(self):
+
         self.mark_task_dates()
 
         self.date_selected(self.calendar.selectedDate())
-
 
 
     # -------------------------
