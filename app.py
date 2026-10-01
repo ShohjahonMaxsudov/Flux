@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
 from PySide6.QtGui import QPainter, QColor, QLinearGradient
 
 
-from ui.dock import FloatingDock, FrostedDockBackdrop
+from ui.dock import FloatingDock, BottomAtmosphereBlur
 
 from ui.page_manager import PageManager
 
@@ -256,10 +256,9 @@ class Flux(QMainWindow):
         # Flux Frost Dock — navigation floats over the animated atmosphere
         # rather than occupying a permanent left rail.
 
-        self.dockBackdrop = FrostedDockBackdrop(
+        self.bottomBlur = BottomAtmosphereBlur(
             [
                 self.aurora,
-                self.stars,
                 self.sakura,
                 self.astro,
                 self.synthwave,
@@ -275,16 +274,16 @@ class Flux(QMainWindow):
             self.change_page
         )
 
-        self.dockBackdrop.set_reduce_motion(
+        self.bottomBlur.set_reduce_motion(
             self.reduce_motion
         )
 
         self._position_dock()
 
-        self.dockBackdrop.show()
+        self.bottomBlur.show()
         self.dock.show()
 
-        self.dockBackdrop.raise_()
+        self.bottomBlur.raise_()
         self.dock.raise_()
 
 
@@ -363,7 +362,7 @@ class Flux(QMainWindow):
         # uiContainer) shows behind the clock.
 
         self.uiContainer.hide()
-        self.dockBackdrop.hide()
+        self.bottomBlur.hide()
         self.dock.hide()
 
         self.lockScreen = LockScreen(
@@ -391,11 +390,11 @@ class Flux(QMainWindow):
         self.lockScreen = None
 
         self.uiContainer.show()
-        self.dockBackdrop.show()
+        self.bottomBlur.show()
         self.dock.show()
         self._position_dock()
-        self.dockBackdrop.refresh_snapshot()
-        self.dockBackdrop.raise_()
+        self.bottomBlur.refresh_snapshot()
+        self.bottomBlur.raise_()
         self.dock.raise_()
 
 
@@ -508,7 +507,7 @@ class Flux(QMainWindow):
         self.uiContainer.raise_()
 
         if hasattr(self, "dockBackdrop"):
-            self.dockBackdrop.raise_()
+            self.bottomBlur.raise_()
 
         if hasattr(self, "dock"):
             self.dock.raise_()
@@ -542,7 +541,7 @@ class Flux(QMainWindow):
         self.reduce_motion = enabled
 
         self.pages.set_reduce_motion(enabled)
-        self.dockBackdrop.set_reduce_motion(enabled)
+        self.bottomBlur.set_reduce_motion(enabled)
 
         self.apply_background_theme()
 
@@ -651,7 +650,7 @@ class Flux(QMainWindow):
         # changed underneath them.
 
         self.dock.apply_theme()
-        self.dockBackdrop.apply_theme()
+        self.bottomBlur.apply_theme()
 
         self.dashboardPage.dashboard.refresh_theme()
 
@@ -717,13 +716,18 @@ class Flux(QMainWindow):
         height = self.dock.height()
 
         x = max(18, (self.central.width() - width) // 2)
-        y = max(18, self.central.height() - height - 22)
+        y = max(18, self.central.height() - height - 20)
 
-        self.dockBackdrop.setGeometry(
-            x,
-            y,
-            width,
-            height
+        blur_height = min(
+            BottomAtmosphereBlur.HEIGHT,
+            self.central.height()
+        )
+
+        self.bottomBlur.setGeometry(
+            0,
+            self.central.height() - blur_height,
+            self.central.width(),
+            blur_height
         )
 
         self.dock.setGeometry(
