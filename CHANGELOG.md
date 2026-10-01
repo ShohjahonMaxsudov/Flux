@@ -4,6 +4,22 @@ Notable Flux changes, reconstructed from the original source snapshots.
 
 For the full recovered history and duplicate-map, see **[docs/HISTORY.md](docs/HISTORY.md)**.
 
+## v1.0.2 — Emergency Dock Hotfix
+
+### Fixed
+- Removed the expensive 90 ms multi-layer live capture that caused severe UI lag.
+- Moved blur out of the dock and into a separate bottom atmosphere gradient.
+- Reduced blurred-background sampling to a lightweight low-resolution pass.
+- Removed costly page-wide fade effects during navigation.
+- Fixed bottom-blur positioning and stacking after the dock refactor.
+
+### Redesigned
+- Increased navigation icon size for better readability.
+- Returned to a simpler Mentor-inspired dock structure: one moving active pill, restrained glass and minimal chrome.
+- Removed dock labels, the progress rail and decorative center indicator.
+- Kept Settings visually separated without making the dock feel crowded.
+- Added a full-width bottom gradient blur so the animated Flux atmosphere remains visible behind navigation.
+
 ## Current — Quality-of-Life / Themes Update
 
 ### Added
