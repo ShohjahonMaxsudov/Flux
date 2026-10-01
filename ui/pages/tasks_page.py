@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
     QFrame
 )
 
+from PySide6.QtCore import QTimer
+
 from ui.taskcard import TaskCard
 from ui.add_task_dialog import AddTaskDialog
 from ui.edit_task_dialog import EditTaskDialog
@@ -391,7 +393,9 @@ class TasksPage(QWidget):
 
         super().showEvent(event)
 
-        self.load_tasks()
+        # Render the page first; refresh on the next event-loop turn so
+        # switching tabs never waits on database/UI rebuild work.
+        QTimer.singleShot(0, self.load_tasks)
 
 
 
