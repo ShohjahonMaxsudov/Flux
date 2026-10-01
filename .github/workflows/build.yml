@@ -1,18 +1,15 @@
 name: Build Windows app
 
-# Runs automatically whenever you push a tag like "v1.0.0", and can
-# also be triggered manually from the Actions tab. It builds Flux on
-# a real Windows machine (GitHub provides one for free), so you don't
-# need Windows yourself just to produce Flux.exe / FluxSetup.exe.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
 
 permissions:
   contents: write
-
-on:
-  push:
-    tags:
-      - "v*"
-  workflow_dispatch:
 
 jobs:
   build:
@@ -25,28 +22,67 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install dependencies
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
 
-      - name: Build with PyInstaller
-        run: pyinstaller Flux.spec
-
-      - name: Zip portable build
+      - name: Build Flux
         shell: pwsh
-        run: Compress-Archive -Path dist/Flux/* -DestinationPath Flux-portable-windows.zip
+        run: |
+          python -m PyInstaller `
+            --noconfirm `
+            --clean `
+            --windowed `
+            --onedir `
+            --name "Flux" `
+            --icon "assets\flux.ico" `
+            --version-file "version_info.txt" `
+            --contents-directory "." `
+            --add-data "assets;assets" `
+            --add-data "database\flux.db;database" `
+            --collect-submodules "themes" `
+            --collect-submodules "animations" `
+            --collect-submodules "ui" `
+            --collect-submodules "utils" `
+            --collect-submodules "database" `
+            "main.py"
+
+          if (-not (Test-Path "dist\Flux\Flux.exe")) {
+            Write-Error "Flux.exe was not created."
+            exit 1
+          }
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path dist/Flux/* -DestinationPath Flux-portable-windows.zip -Force
 
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup -y --no-progress
 
       - name: Build installer
-        shell: cmd
-        run: '"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss'
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) {
+            Write-Error "Inno Setup compiler not found."
+            exit 1
+          }
+
+          & $iscc "installer.iss"
+
+          if (-not (Test-Path "release\FluxSetup.exe")) {
+            Write-Error "release\FluxSetup.exe was not created."
+            exit 1
+          }
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -54,7 +90,9 @@ jobs:
           name: Flux-windows-build
           path: |
             Flux-portable-windows.zip
-            installer_output/FluxSetup.exe
+            release/FluxSetup.exe
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -62,4 +100,4 @@ jobs:
         with:
           files: |
             Flux-portable-windows.zip
-            installer_output/FluxSetup.exe
+            release/FluxSetup.exe
