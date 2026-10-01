@@ -13,7 +13,7 @@ A modern Windows productivity app for tasks, focus, notes, calendar planning and
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![PySide6](https://img.shields.io/badge/UI-PySide6-41CD52?logo=qt&logoColor=white)
 
-**[Download releases](https://github.com/ShohjahonMaxsudov/Flux/releases)** · **[Patch notes](CHANGELOG.md)** · **[Build from source](docs/BUILDING.md)**
+**[Download releases](https://github.com/ShohjahonMaxsudov/Flux/releases)** · **[Patch notes](CHANGELOG.md)** · **[Evolution](docs/HISTORY.md)** · **[Build from source](docs/BUILDING.md)**
 
 </div>
 
@@ -90,11 +90,13 @@ Flux/
 └── main.py            # Entry point
 ```
 
-## Patch notes
+## Current major update
 
-The public version history is being organized now.
+The newest recovered generation is the **Quality-of-Life / Themes Update**.
 
-See **[CHANGELOG.md](CHANGELOG.md)** for the current changelog. Older Flux builds will be added to GitHub Releases with their own notes as the historical versions are restored.
+It introduced Focus sessions, Weekly Progress, task sorting, undo, toast notifications, custom themes, expanded animations and a much larger theme collection.
+
+See **[CHANGELOG.md](CHANGELOG.md)** for patch notes and **[docs/HISTORY.md](docs/HISTORY.md)** for the reconstructed development history.
 
 ## Development status
 
