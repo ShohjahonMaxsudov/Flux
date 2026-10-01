@@ -61,14 +61,14 @@ class ShootingStar:
 
         self.active = True
 
-    def update(self):
+    def update(self, step=1.0):
         if not self.active:
             return
 
-        self.x += self.speed
-        self.y += self.speed * 0.42
+        self.x += self.speed * step
+        self.y += self.speed * 0.42 * step
 
-        self.life += 1
+        self.life += step
 
         if self.life >= self.max_life:
             self.active = False
@@ -95,7 +95,7 @@ class StarField(QWidget):
 
     # 30fps: motion below is expressed per-tick, tuned for this rate.
 
-    FRAME_MS = 33
+    FRAME_MS = 16
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -125,6 +125,7 @@ class StarField(QWidget):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._tick)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.start(self.FRAME_MS)
 
 
@@ -228,6 +229,7 @@ class StarField(QWidget):
 
     def _tick(self):
         self._time += self.FRAME_MS / 1000.0
+        step = self.FRAME_MS / 33.0
 
         if self.mode in ("bubbles", "embers", "snow"):
 
@@ -239,7 +241,7 @@ class StarField(QWidget):
 
                 if self.mode == "snow":
 
-                    b.y += b.rise * 2
+                    b.y += b.rise * 2 * step
 
                     if b.y > h + 12:
 
@@ -249,7 +251,7 @@ class StarField(QWidget):
 
                 else:
 
-                    b.y -= b.rise * 2
+                    b.y -= b.rise * 2 * step
 
                     if b.y < -20:
 
@@ -259,14 +261,14 @@ class StarField(QWidget):
 
         if self.shooting_enabled:
 
-            self._frames_until_shoot -= 1
+            self._frames_until_shoot -= step
 
             if self._frames_until_shoot <= 0:
                 self.shooting = ShootingStar(self.width(), self.height())
                 self._frames_until_shoot = random.randint(*self.shoot_frames)
 
             if self.shooting:
-                self.shooting.update()
+                self.shooting.update(step)
 
                 if not self.shooting.active:
                     self.shooting = None
