@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, Signal, QTimer, QRect, QPropertyAnimation, QEasingCurve
-from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QFrame, QPushButton, QHBoxLayout
 
 from themes.manager import ThemeManager
@@ -13,18 +13,17 @@ class DockButton(QPushButton):
     def __init__(self, icon_name, label, key, parent=None):
         super().__init__(parent)
         self.key = key
-        self.label_text = label
         self.active = False
 
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedSize(64, 54)
+        self.setFixedSize(70, 60)
         self.setToolTip(label)
         self.setStyleSheet("QPushButton { background: transparent; border: none; }")
 
-        self.icon = IconGlyph(icon_name, size=28, stroke_width=1.9)
+        self.icon = IconGlyph(icon_name, size=32, stroke_width=1.9)
         self.icon.setParent(self)
+        self.icon.setFixedSize(40, 40)
         self.icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.icon.setFixedSize(34, 34)
 
         self.clicked.connect(lambda: self.activated.emit(self.key))
         self.apply_theme()
@@ -37,23 +36,21 @@ class DockButton(QPushButton):
         super().resizeEvent(event)
 
     def enterEvent(self, event):
-        self._apply_icon(hover=True)
+        self._apply_icon(True)
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        self._apply_icon(hover=False)
+        self._apply_icon(False)
         super().leaveEvent(event)
 
     def set_active(self, active):
         self.active = bool(active)
-        self._apply_icon(hover=False)
+        self._apply_icon(False)
 
     def _apply_icon(self, hover=False):
         theme = ThemeManager.get()
 
-        if self.active:
-            color = theme.Colors.TEXT
-        elif hover:
+        if self.active or hover:
             color = theme.Colors.TEXT
         else:
             color = theme.Colors.TEXT_SECONDARY
@@ -61,7 +58,7 @@ class DockButton(QPushButton):
         self.icon.setColor(color)
 
     def apply_theme(self):
-        self._apply_icon(hover=False)
+        self._apply_icon(False)
 
 
 class ActivePill(QFrame):
@@ -76,139 +73,97 @@ class ActivePill(QFrame):
             f"""
             QFrame {{
                 background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:1,
-                    stop:0 {rgba(theme.Colors.PRIMARY, 0.24)},
-                    stop:0.55 {rgba(theme.Colors.PRIMARY, 0.14)},
-                    stop:1 {rgba(theme.Colors.PURPLE, 0.10)}
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 {rgba(theme.Colors.PRIMARY, 0.25)},
+                    stop:0.55 {rgba(theme.Colors.PRIMARY, 0.15)},
+                    stop:1 {rgba(theme.Colors.PRIMARY, 0.09)}
                 );
-                border: 1px solid {rgba(theme.Colors.PRIMARY, 0.34)};
-                border-radius: 20px;
+                border: 1px solid {rgba(theme.Colors.PRIMARY, 0.58)};
+                border-radius: 25px;
             }}
             """
         )
 
 
 class BottomAtmosphereBlur(QFrame):
-    """Low-cost blurred atmosphere strip behind the floating dock."""
+    """
+    Feathered bottom atmosphere.
 
-    HEIGHT = 152
+    Important: this intentionally does NOT grab/re-render the animated
+    background. The old live capture was the main source of dock jank.
+    Flux's real animated background remains visible through this translucent
+    haze, while the multi-stop fade creates the soft visual separation.
+    """
 
-    def __init__(self, providers, parent=None):
+    HEIGHT = 210
+
+    def __init__(self, providers=None, parent=None):
         super().__init__(parent)
-        self.providers = list(providers)
-        self._snapshot = QPixmap()
-        self._reduce_motion = False
-
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        self._timer = QTimer(self)
-        self._timer.setInterval(280)
-        self._timer.timeout.connect(self.refresh_snapshot)
-        self._timer.start()
-
     def set_reduce_motion(self, enabled):
-        self._reduce_motion = bool(enabled)
-        if self._reduce_motion:
-            self._timer.stop()
-            self.refresh_snapshot()
-        elif not self._timer.isActive():
-            self._timer.start()
-
-    def apply_theme(self):
-        self.refresh_snapshot()
-        self.update()
+        pass
 
     def refresh_snapshot(self):
-        if not self.isVisible() or self.width() < 8 or self.height() < 8:
-            return
+        # Compatibility with the earlier blur implementation.
+        self.update()
 
-        theme = ThemeManager.get()
-
-        canvas = QPixmap(self.size())
-        canvas.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(canvas)
-
-        base = QLinearGradient(0, 0, 0, self.height())
-        top = QColor(theme.Colors.SECONDARY)
-        top.setAlpha(70)
-        bottom = QColor(theme.Colors.BACKGROUND)
-        bottom.setAlpha(210)
-        base.setColorAt(0.0, top)
-        base.setColorAt(1.0, bottom)
-        painter.fillRect(canvas.rect(), base)
-
-        # Blur only the main animated atmosphere, not every overlay.
-        # Sampling one strip at ~3.5 fps is dramatically cheaper than
-        # grabbing multiple widgets every 90 ms.
-        for provider in self.providers:
-            if provider is None or not provider.isVisible():
-                continue
-
-            source_y = max(0, provider.height() - self.height())
-            source = QRect(0, source_y, provider.width(), self.height())
-
-            try:
-                pixmap = provider.grab(source)
-            except Exception:
-                pixmap = QPixmap()
-
-            if not pixmap.isNull():
-                painter.drawPixmap(self.rect(), pixmap)
-                break
-
-        painter.end()
-
-        # Heavy downsample = strong blur, low CPU/GPU cost.
-        tiny_w = max(48, self.width() // 14)
-        tiny_h = max(8, self.height() // 14)
-
-        tiny = canvas.scaled(
-            tiny_w,
-            tiny_h,
-            Qt.AspectRatioMode.IgnoreAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-
-        self._snapshot = tiny.scaled(
-            self.size(),
-            Qt.AspectRatioMode.IgnoreAspectRatio,
-            Qt.TransformationMode.SmoothTransformation,
-        )
-
+    def apply_theme(self):
         self.update()
 
     def paintEvent(self, event):
         theme = ThemeManager.get()
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
-        if not self._snapshot.isNull():
-            painter.drawPixmap(self.rect(), self._snapshot)
-
-        # Instagram-like bottom gradient behavior: invisible at the top,
-        # progressively softer/darker toward the bottom.
+        # No rectangle, no border, no hard starting edge.
+        # The layer is fully transparent at its top and only becomes
+        # noticeable toward the dock / bottom of the window.
         fade = QLinearGradient(0, 0, 0, self.height())
 
-        c0 = QColor(theme.Colors.BACKGROUND)
-        c0.setAlpha(0)
+        clear = QColor(theme.Colors.BACKGROUND)
+        clear.setAlpha(0)
 
-        c1 = QColor(theme.Colors.BACKGROUND)
-        c1.setAlpha(55)
+        soft = QColor(theme.Colors.BACKGROUND)
+        soft.setAlpha(24)
 
-        c2 = QColor(theme.Colors.BACKGROUND)
-        c2.setAlpha(150)
+        medium = QColor(theme.Colors.BACKGROUND)
+        medium.setAlpha(84)
 
-        c3 = QColor(theme.Colors.BACKGROUND)
-        c3.setAlpha(220)
+        deep = QColor(theme.Colors.BACKGROUND)
+        deep.setAlpha(176)
 
-        fade.setColorAt(0.0, c0)
-        fade.setColorAt(0.34, c1)
-        fade.setColorAt(0.72, c2)
-        fade.setColorAt(1.0, c3)
+        bottom = QColor(theme.Colors.BACKGROUND)
+        bottom.setAlpha(222)
+
+        fade.setColorAt(0.00, clear)
+        fade.setColorAt(0.20, clear)
+        fade.setColorAt(0.42, soft)
+        fade.setColorAt(0.68, medium)
+        fade.setColorAt(0.88, deep)
+        fade.setColorAt(1.00, bottom)
 
         painter.fillRect(self.rect(), fade)
+
+        # Tiny theme-colour haze so Aurora/Sakura/etc still tint the bottom.
+        accent = QLinearGradient(0, 0, self.width(), 0)
+
+        p = QColor(theme.Colors.PRIMARY)
+        p.setAlpha(0)
+
+        p_mid = QColor(theme.Colors.PRIMARY)
+        p_mid.setAlpha(16)
+
+        q_mid = QColor(theme.Colors.PURPLE)
+        q_mid.setAlpha(12)
+
+        accent.setColorAt(0.0, p)
+        accent.setColorAt(0.35, p_mid)
+        accent.setColorAt(0.68, q_mid)
+        accent.setColorAt(1.0, p)
+
+        painter.setOpacity(0.55)
+        painter.fillRect(self.rect(), accent)
 
 
 class FloatingDock(QFrame):
@@ -217,19 +172,19 @@ class FloatingDock(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setFixedSize(554, 74)
+        self.setFixedSize(608, 86)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         self._active_key = "Dashboard"
         self._indicator_animation = None
 
         self.indicator = ActivePill(self)
-        self.indicator.setGeometry(16, 10, 64, 54)
+        self.indicator.setGeometry(14, 10, 80, 66)
         self.indicator.lower()
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 10, 16, 10)
-        layout.setSpacing(7)
+        layout.setContentsMargins(18, 13, 18, 13)
+        layout.setSpacing(8)
 
         self.buttons = []
         self._by_key = {}
@@ -251,10 +206,10 @@ class FloatingDock(QFrame):
             layout.addWidget(button)
 
         self.separator = QFrame(self)
-        self.separator.setFixedSize(1, 26)
-        layout.addSpacing(1)
+        self.separator.setFixedSize(1, 34)
+        layout.addSpacing(2)
         layout.addWidget(self.separator, alignment=Qt.AlignmentFlag.AlignVCenter)
-        layout.addSpacing(1)
+        layout.addSpacing(2)
 
         settings = DockButton("gear", "Settings", "Settings", self)
         settings.activated.connect(self._activate)
@@ -266,14 +221,21 @@ class FloatingDock(QFrame):
         QTimer.singleShot(0, lambda: self.set_active("Dashboard", animate=False))
 
     def _activate(self, key):
-        self.set_active(key)
+        # App changes the page first, then updates the dock once.
+        # The previous implementation animated here and again in app.py.
         self.pageChanged.emit(key)
 
     def _indicator_rect_for(self, button):
-        return QRect(button.x(), button.y(), button.width(), button.height())
+        return button.geometry().adjusted(-5, -3, 5, 3)
 
     def set_active(self, key, animate=True):
         if key not in self._by_key:
+            return
+
+        if key == self._active_key and animate:
+            # Still ensure icon state is correct, but don't restart animation.
+            for button in self.buttons:
+                button.set_active(button.key == key)
             return
 
         self._active_key = key
@@ -285,13 +247,14 @@ class FloatingDock(QFrame):
 
         if self._indicator_animation is not None:
             self._indicator_animation.stop()
+            self._indicator_animation = None
 
         if not animate or not self.isVisible():
             self.indicator.setGeometry(target)
             return
 
         animation = QPropertyAnimation(self.indicator, b"geometry", self)
-        animation.setDuration(205)
+        animation.setDuration(175)
         animation.setStartValue(self.indicator.geometry())
         animation.setEndValue(target)
         animation.setEasingCurve(QEasingCurve.Type.OutCubic)
@@ -305,8 +268,6 @@ class FloatingDock(QFrame):
         animation.start()
 
     def set_progress(self, percent):
-        # Kept for compatibility with Dashboard.progressChanged.
-        # Progress no longer decorates the dock; the navigation stays minimal.
         pass
 
     def apply_theme(self):
@@ -315,7 +276,7 @@ class FloatingDock(QFrame):
         self.indicator.apply_theme()
 
         self.separator.setStyleSheet(
-            f"background:{rgba(theme.Colors.TEXT, 0.13)}; border:none;"
+            f"background:{rgba(theme.Colors.TEXT, 0.18)}; border:none;"
         )
 
         for button in self.buttons:
@@ -331,36 +292,41 @@ class FloatingDock(QFrame):
 
         rect = self.rect().adjusted(1, 1, -1, -1)
         path = QPainterPath()
-        path.addRoundedRect(rect, 36, 36)
+        path.addRoundedRect(rect, 42, 42)
 
-        # Clean glass surface. The real blur lives behind the dock in the
-        # bottom atmosphere layer, keeping this component fast and legible.
         glass = QLinearGradient(0, 0, 0, self.height())
 
         top = QColor(theme.Colors.SURFACE_ALT)
-        top.setAlpha(225)
+        top.setAlpha(178)
+
+        mid = QColor(theme.Colors.SURFACE)
+        mid.setAlpha(188)
 
         bottom = QColor(theme.Colors.BACKGROUND)
-        bottom.setAlpha(238)
+        bottom.setAlpha(214)
 
         glass.setColorAt(0.0, top)
+        glass.setColorAt(0.50, mid)
         glass.setColorAt(1.0, bottom)
 
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(glass)
         painter.drawPath(path)
 
-        rim = QColor(theme.Colors.TEXT)
-        rim.setAlpha(28)
+        # Theme-coloured rim, closer to the reference but still Flux.
+        rim = QColor(theme.Colors.PRIMARY)
+        rim.setAlpha(115)
 
-        painter.setPen(QPen(rim, 1))
+        painter.setPen(QPen(rim, 1.25))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(path)
 
-        # A very restrained top highlight is enough to sell the glass.
+        # Soft top highlight.
         highlight = QColor(theme.Colors.TEXT)
-        highlight.setAlpha(18)
+        highlight.setAlpha(34)
         painter.setPen(QPen(highlight, 1))
-        painter.drawLine(36, 2, self.width() - 36, 2)
-
-        super().paintEvent(event)
+        painter.drawArc(
+            rect.adjusted(2, 2, -2, -2),
+            24 * 16,
+            132 * 16,
+        )
