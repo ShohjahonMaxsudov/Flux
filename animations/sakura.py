@@ -126,15 +126,15 @@ class Petal:
             self.color = QColor(255, 190, 210)
 
 
-    def update(self, width, height):
+    def update(self, width, height, step=1.0):
 
-        self.y += self.speed
+        self.y += self.speed * step
 
-        self.swing += self.swing_speed
+        self.swing += self.swing_speed * step
 
-        self.x += math.sin(self.swing) * self.drift
+        self.x += math.sin(self.swing) * self.drift * step
 
-        self.rotation += self.rotation_speed
+        self.rotation += self.rotation_speed * step
 
         if self.y > height + 40 or self.x < -60 or self.x > width + 60:
 
@@ -142,6 +142,8 @@ class Petal:
 
 
 class SakuraBackground(QWidget):
+
+    FRAME_MS = 16
 
     # Atmospheric Sakura background: a dusk-pink gradient sky, a warm
     # off-center glow, two blurred cherry-blossom branch silhouettes at
@@ -175,15 +177,16 @@ class SakuraBackground(QWidget):
         self.timer = QTimer(self)
 
         self.timer.timeout.connect(self._tick)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
 
-        self.timer.start(30)
+        self.timer.start(self.FRAME_MS)
 
 
     def start(self):
 
         if not self.timer.isActive():
 
-            self.timer.start(30)
+            self.timer.start(self.FRAME_MS)
 
 
     def stop(self):
@@ -221,9 +224,11 @@ class SakuraBackground(QWidget):
 
             self._init_petals()
 
+        step = self.FRAME_MS / 30.0
+
         for petal in self.petals:
 
-            petal.update(self.width(), self.height())
+            petal.update(self.width(), self.height(), step)
 
         self.update()
 
