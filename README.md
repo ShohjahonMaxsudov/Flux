@@ -19,6 +19,10 @@ A modern Windows productivity app for tasks, focus, notes, calendar planning and
 
 ---
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/51eb538e-2fe5-40f6-a4d2-cbdb67dd14c9" alt="Flux theme gallery" width="100%">
+</p>
+
 ## ✦ What is Flux?
 
 Flux is a desktop productivity workspace designed to keep daily planning in one place without feeling like a spreadsheet.
