@@ -214,6 +214,54 @@ class IconCircle(QFrame):
         )
 
 
+class CheckButton(QPushButton):
+    def __init__(self, checked=False, size=24, square=False, parent=None):
+        super().__init__(parent)
+        self._checked_visual = bool(checked)
+        self._square = bool(square)
+        self.setFixedSize(size, size)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setObjectName("fluxCheckButton")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(max(3, size // 5), max(3, size // 5), max(3, size // 5), max(3, size // 5))
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.icon = IconGlyph("check", size=max(10, int(size * 0.52)), stroke_width=2.2)
+        self.icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        layout.addWidget(self.icon)
+
+        self.apply_theme()
+
+    def set_checked_visual(self, checked):
+        self._checked_visual = bool(checked)
+        self.apply_theme()
+
+    def apply_theme(self):
+        c = ThemeManager.get().Colors
+        radius = 6 if self._square else self.width() // 2
+
+        self.icon.setVisible(self._checked_visual)
+        self.icon.setColor("#FFFFFF")
+
+        background = c.PRIMARY if self._checked_visual else "transparent"
+        border = c.PRIMARY_LIGHT if self._checked_visual else "#60738E"
+
+        self.setStyleSheet(
+            f"""
+            QPushButton#fluxCheckButton {{
+                background:{background};
+                border:1px solid {border};
+                border-radius:{radius}px;
+            }}
+            QPushButton#fluxCheckButton:hover {{
+                border-color:{c.PRIMARY_LIGHT};
+                background:rgba(79,103,244,0.16);
+            }}
+            """
+        )
+
+
 class GradientButton(QPushButton):
     def __init__(self, text, icon_name=None, parent=None):
         super().__init__(parent)
