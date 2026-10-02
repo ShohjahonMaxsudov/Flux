@@ -51,7 +51,7 @@ class SettingsManager:
 
     def get_theme(self):
 
-        return self.database.get_setting("theme", "dark") or "dark"
+        return self.database.get_setting("theme", "midnight") or "midnight"
 
 
     def set_theme(self, name):
