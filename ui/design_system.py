@@ -144,6 +144,12 @@ class HeaderLink(QPushButton):
         self.setObjectName("headerLink")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedHeight(28)
+        self.setMinimumWidth(
+            max(
+                62,
+                34 + len(text) * 7
+            )
+        )
 
         row = QHBoxLayout(self)
         row.setContentsMargins(7, 0, 5, 0)
