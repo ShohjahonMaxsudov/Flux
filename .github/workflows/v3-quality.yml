@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: flux-v3-visual-qa
+  cancel-in-progress: true
+
 jobs:
   visual-qa:
     runs-on: windows-latest
