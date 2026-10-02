@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -15,634 +15,443 @@ from PySide6.QtWidgets import (
 )
 
 from themes.manager import ThemeManager
+from ui.design_system import AccentOrb, ClickableFrame, GradientButton, IconCircle, Metrics, SurfaceCard, clear_layout
 from ui.edit_task_dialog import EditTaskDialog
+from ui.icons import IconGlyph
 from utils.focus_manager import FocusManager
 from utils.task_manager import TaskManager
 
 
+CATEGORY_COLORS = {
+    "Work": ("#74A7FF", "rgba(60,105,205,0.18)"),
+    "Study": ("#AF8BFF", "rgba(125,80,220,0.18)"),
+    "Planning": ("#91A7D9", "rgba(90,115,165,0.18)"),
+    "Fitness": ("#5BD69A", "rgba(60,175,120,0.17)"),
+    "Health": ("#5BD69A", "rgba(60,175,120,0.17)"),
+    "Coding": ("#70D6FF", "rgba(70,155,195,0.17)"),
+    "Personal": ("#C19BFF", "rgba(130,85,205,0.18)"),
+    "General": ("#9CB0CF", "rgba(100,120,155,0.16)"),
+}
+
+
+class TaskRow(ClickableFrame):
+    toggleRequested = Signal(object)
+    editRequested = Signal(object)
+
+    def __init__(self, task, parent=None):
+        super().__init__(parent)
+        self.task = task
+        self.setObjectName("taskRow")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 10, 10, 10)
+        layout.setSpacing(10)
+
+        self.check = QPushButton("✓" if task.completed else "")
+        self.check.setObjectName("taskCheckDone" if task.completed else "taskCheck")
+        self.check.setFixedSize(24, 24)
+        self.check.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.check.clicked.connect(lambda: self.toggleRequested.emit(task))
+
+        self.title = QLabel(task.title)
+        self.title.setObjectName("taskTitleDone" if task.completed else "taskTitle")
+        self.title.setMinimumWidth(150)
+
+        category = QLabel(task.category or "General")
+        category.setObjectName("categoryChip")
+        fg, bg = CATEGORY_COLORS.get(task.category or "General", CATEGORY_COLORS["General"])
+        category.setStyleSheet(
+            f"color:{fg}; background:{bg}; border:1px solid {fg}33; border-radius:9px; padding:4px 9px; font-size:10px;"
+        )
+
+        due = QLabel(self._friendly_date(task.task_date, task.completed))
+        due.setObjectName("taskDue")
+        due.setMinimumWidth(72)
+        due.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        priority = QLabel("Medium" if task.priority == "Normal" else task.priority)
+        priority.setObjectName(
+            "priorityHigh" if task.priority == "High" else ("priorityLow" if task.priority == "Low" else "priorityMedium")
+        )
+        priority.setMinimumWidth(58)
+        priority.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        more = QPushButton()
+        more.setObjectName("taskMore")
+        more.setFixedSize(30, 30)
+        more.setCursor(Qt.CursorShape.PointingHandCursor)
+        more.clicked.connect(lambda: self.editRequested.emit(task))
+        more_layout = QHBoxLayout(more)
+        more_layout.setContentsMargins(6, 6, 6, 6)
+        self.more_icon = IconGlyph("more", size=16)
+        self.more_icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        more_layout.addWidget(self.more_icon)
+
+        layout.addWidget(self.check)
+        layout.addWidget(self.title, 1)
+        layout.addWidget(category)
+        layout.addWidget(due)
+        layout.addWidget(priority)
+        layout.addWidget(more)
+
+        self.apply_theme()
+
+    @staticmethod
+    def _friendly_date(value, completed=False):
+        if completed:
+            return "Today" if value == datetime.now().strftime("%Y-%m-%d") else (value or "")
+        if not value:
+            return "Today"
+        try:
+            day = datetime.strptime(value, "%Y-%m-%d").date()
+            today = datetime.now().date()
+            delta = (day - today).days
+            if delta < 0:
+                return "Overdue"
+            if delta == 0:
+                return "Today"
+            if delta == 1:
+                return "Tomorrow"
+            if delta < 7:
+                return day.strftime("%a")
+            return day.strftime("%b %d")
+        except (TypeError, ValueError):
+            return value
+
+    def apply_theme(self):
+        c = ThemeManager.get().Colors
+        self.more_icon.setColor(c.TEXT_SECONDARY)
+        self.setStyleSheet(
+            f"""
+            QFrame#taskRow {{
+                background:{c.SURFACE};
+                border:1px solid {c.BORDER};
+                border-radius:11px;
+            }}
+            QFrame#taskRow:hover {{
+                background:{c.SURFACE_ALT};
+                border-color:rgba(115,150,220,0.30);
+            }}
+            QPushButton#taskCheck, QPushButton#taskCheckDone {{
+                background:transparent;
+                color:white;
+                border:1px solid #657994;
+                border-radius:12px;
+                font-size:10px;
+                font-weight:800;
+            }}
+            QPushButton#taskCheckDone {{
+                background:{c.PRIMARY};
+                border-color:{c.PRIMARY_LIGHT};
+            }}
+            QLabel#taskTitle {{ color:{c.TEXT}; background:transparent; border:none; font-size:11px; font-weight:600; }}
+            QLabel#taskTitleDone {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:11px; text-decoration:line-through; }}
+            QLabel#taskDue {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:10px; }}
+            QLabel#priorityHigh {{ color:#FF8492; background:rgba(220,70,85,0.13); border:1px solid rgba(255,100,120,0.20); border-radius:10px; padding:4px 8px; font-size:10px; }}
+            QLabel#priorityMedium {{ color:#F2CB69; background:rgba(205,155,55,0.12); border:1px solid rgba(240,195,80,0.18); border-radius:10px; padding:4px 8px; font-size:10px; }}
+            QLabel#priorityLow {{ color:#7DAAFF; background:rgba(70,105,210,0.12); border:1px solid rgba(90,135,245,0.20); border-radius:10px; padding:4px 8px; font-size:10px; }}
+            QPushButton#taskMore {{ background:transparent; border:none; border-radius:8px; }}
+            QPushButton#taskMore:hover {{ background:rgba(100,125,165,0.12); }}
+            """
+        )
+
+
 class TasksPage(QWidget):
-
     def __init__(self):
-
         super().__init__()
 
         self.task_manager = TaskManager()
         self.focus_manager = FocusManager()
-
         self.selected_task = None
         self.current_filter = "All"
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(6, 4, 6, 6)
+        root.setContentsMargins(Metrics.PAGE_X, Metrics.PAGE_Y, Metrics.PAGE_X, Metrics.PAGE_Y)
         root.setSpacing(16)
 
         header = QHBoxLayout()
-
         heading = QVBoxLayout()
         heading.setSpacing(2)
-
         self.eyebrow = QLabel("Good evening")
         self.eyebrow.setObjectName("tasksEyebrow")
-
         self.hero = QLabel("Tasks keep progress alive.")
         self.hero.setObjectName("tasksHero")
-
         heading.addWidget(self.eyebrow)
         heading.addWidget(self.hero)
 
         right = QVBoxLayout()
-
+        right.setSpacing(10)
+        search_row = QHBoxLayout()
+        search_row.setSpacing(12)
         self.search = QLineEdit()
         self.search.setObjectName("tasksSearch")
         self.search.setPlaceholderText("Search tasks…")
-        self.search.setFixedWidth(310)
+        self.search.setFixedWidth(305)
         self.search.textChanged.connect(self.load_tasks)
-
-        self.dateLabel = QLabel()
-        self.dateLabel.setObjectName("tasksDate")
-
-        right.addWidget(
-            self.search,
-            0,
-            Qt.AlignmentFlag.AlignRight
-        )
-        right.addWidget(
-            self.dateLabel,
-            0,
-            Qt.AlignmentFlag.AlignRight
-        )
+        self.avatar = AccentOrb(38)
+        search_row.addWidget(self.search)
+        search_row.addWidget(self.avatar)
+        self.date_label = QLabel()
+        self.date_label.setObjectName("tasksDate")
+        self.date_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        right.addLayout(search_row)
+        right.addWidget(self.date_label)
 
         header.addLayout(heading, 1)
         header.addLayout(right)
-
         root.addLayout(header)
 
         toolbar = QFrame()
         toolbar.setObjectName("tasksToolbar")
-
         toolbar_layout = QHBoxLayout(toolbar)
-        toolbar_layout.setContentsMargins(8, 8, 8, 8)
-        toolbar_layout.setSpacing(5)
+        toolbar_layout.setContentsMargins(7, 7, 7, 7)
+        toolbar_layout.setSpacing(4)
 
-        self.tabButtons = {}
-
+        self.tabs = {}
         for key in ("All", "Today", "Upcoming", "Completed"):
-
             button = QPushButton(key)
             button.setObjectName("taskTab")
             button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.clicked.connect(
-                lambda _checked=False, k=key:
-                    self.set_filter(k)
-            )
-
+            button.clicked.connect(lambda _checked=False, k=key: self.set_filter(k))
+            self.tabs[key] = button
             toolbar_layout.addWidget(button)
-            self.tabButtons[key] = button
 
         toolbar_layout.addStretch(1)
 
-        sort_label = QLabel("Sort")
-        sort_label.setObjectName("toolbarLabel")
+        sort_icon = IconGlyph("sort", size=15)
+        sort_icon.setColor(ThemeManager.get().Colors.TEXT_SECONDARY)
+        toolbar_layout.addWidget(sort_icon)
 
         self.sort = QComboBox()
         self.sort.setObjectName("tasksSort")
-        self.sort.addItems(
-            (
-                "Priority",
-                "Due Date",
-                "Newest",
-                "Title A-Z",
-            )
-        )
+        self.sort.addItems(("Priority", "Due Date", "Newest", "Title A-Z"))
         self.sort.currentTextChanged.connect(self.load_tasks)
-
-        toolbar_layout.addWidget(sort_label)
         toolbar_layout.addWidget(self.sort)
 
         root.addWidget(toolbar)
 
         body = QHBoxLayout()
-        body.setSpacing(16)
+        body.setSpacing(14)
 
-        self.taskScroll = QScrollArea()
-        self.taskScroll.setWidgetResizable(True)
-        self.taskScroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.taskScroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
+        self.task_scroll = QScrollArea()
+        self.task_scroll.setWidgetResizable(True)
+        self.task_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.task_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.task_scroll.setStyleSheet("QScrollArea{background:transparent;border:none;} QScrollArea>QWidget>QWidget{background:transparent;}")
 
-        self.taskHost = QWidget()
-
-        self.taskLayout = QVBoxLayout(self.taskHost)
-        self.taskLayout.setContentsMargins(0, 0, 6, 0)
-        self.taskLayout.setSpacing(14)
-        self.taskLayout.addStretch(1)
-
-        self.taskScroll.setWidget(self.taskHost)
-
-        body.addWidget(self.taskScroll, 1)
+        self.task_host = QWidget()
+        self.task_host.setStyleSheet("background:transparent;")
+        self.task_layout = QVBoxLayout(self.task_host)
+        self.task_layout.setContentsMargins(0, 0, 4, 0)
+        self.task_layout.setSpacing(14)
+        self.task_layout.addStretch(1)
+        self.task_scroll.setWidget(self.task_host)
+        body.addWidget(self.task_scroll, 1)
 
         self.side = QWidget()
-        self.side.setFixedWidth(340)
-
+        self.side.setFixedWidth(330)
         side_layout = QVBoxLayout(self.side)
         side_layout.setContentsMargins(0, 0, 0, 0)
-        side_layout.setSpacing(14)
+        side_layout.setSpacing(12)
 
-        self.summaryCard = QFrame()
-        self.summaryCard.setObjectName("taskSideCard")
+        self.summary_card = SurfaceCard("Productivity Summary")
+        self.completed_summary = self._summary_row("Completed Today", "check", "Today")
+        self.upcoming_summary = self._summary_row("Upcoming Tasks", "calendar", "Next")
+        self.focus_summary = self._summary_row("Focus Time", "chart", "This week")
+        for item in (self.completed_summary, self.upcoming_summary, self.focus_summary):
+            self.summary_card.body.addWidget(item["frame"])
+        side_layout.addWidget(self.summary_card)
 
-        summary_layout = QVBoxLayout(self.summaryCard)
-        summary_layout.setContentsMargins(16, 16, 16, 16)
-        summary_layout.setSpacing(10)
+        self.quick_card = SurfaceCard("Quick Add Task")
+        self.quick_title = QLineEdit()
+        self.quick_title.setObjectName("quickTitle")
+        self.quick_title.setPlaceholderText("What do you want to get done?")
+        self.quick_title.returnPressed.connect(self.quick_add)
+        self.quick_card.body.addWidget(self.quick_title)
 
-        summary_title = QLabel("Productivity Summary")
-        summary_title.setObjectName("sideTitle")
+        meta = QHBoxLayout()
+        meta.setSpacing(7)
+        self.quick_date = QDateEdit(QDate.currentDate())
+        self.quick_date.setObjectName("quickInput")
+        self.quick_date.setCalendarPopup(True)
+        self.quick_date.setDisplayFormat("dd MMM")
+        self.quick_priority = QComboBox()
+        self.quick_priority.setObjectName("quickInput")
+        self.quick_priority.addItems(("Low", "Normal", "High"))
+        self.quick_priority.setCurrentText("Normal")
+        self.quick_category = QComboBox()
+        self.quick_category.setObjectName("quickInput")
+        self.quick_category.addItems(("General", "Study", "Work", "Fitness", "Health", "Coding", "Personal"))
+        meta.addWidget(self.quick_date)
+        meta.addWidget(self.quick_priority)
+        meta.addWidget(self.quick_category)
+        self.quick_card.body.addLayout(meta)
 
-        summary_layout.addWidget(summary_title)
+        self.quick_button = GradientButton("Add Task", "plus")
+        self.quick_button.clicked.connect(self.quick_add)
+        self.quick_card.body.addWidget(self.quick_button)
+        side_layout.addWidget(self.quick_card)
 
-        self.completedSummary = self._summary_row(
-            "Completed Today",
-            "check"
-        )
-        self.upcomingSummary = self._summary_row(
-            "Upcoming Tasks",
-            "calendar"
-        )
-        self.focusSummary = self._summary_row(
-            "Focus Time",
-            "chart"
-        )
-
-        for row in (
-            self.completedSummary,
-            self.upcomingSummary,
-            self.focusSummary,
-        ):
-            summary_layout.addWidget(row["frame"])
-
-        side_layout.addWidget(self.summaryCard)
-
-        self.quickCard = QFrame()
-        self.quickCard.setObjectName("taskSideCard")
-
-        quick = QVBoxLayout(self.quickCard)
-        quick.setContentsMargins(16, 16, 16, 16)
-        quick.setSpacing(10)
-
-        quick_title = QLabel("Quick Add Task")
-        quick_title.setObjectName("sideTitle")
-
-        self.quickTitle = QLineEdit()
-        self.quickTitle.setObjectName("quickTitle")
-        self.quickTitle.setPlaceholderText("What do you want to get done?")
-        self.quickTitle.returnPressed.connect(self.quick_add)
-
-        quick_meta = QHBoxLayout()
-
-        self.quickDate = QDateEdit(QDate.currentDate())
-        self.quickDate.setObjectName("quickInput")
-        self.quickDate.setCalendarPopup(True)
-        self.quickDate.setDisplayFormat("dd MMM")
-
-        self.quickPriority = QComboBox()
-        self.quickPriority.setObjectName("quickInput")
-        self.quickPriority.addItems(("Low", "Normal", "High"))
-        self.quickPriority.setCurrentText("Normal")
-
-        self.quickCategory = QComboBox()
-        self.quickCategory.setObjectName("quickInput")
-        self.quickCategory.addItems(
-            (
-                "General",
-                "Study",
-                "Work",
-                "Fitness",
-                "Health",
-                "Coding",
-                "Personal",
-            )
-        )
-
-        quick_meta.addWidget(self.quickDate)
-        quick_meta.addWidget(self.quickPriority)
-        quick_meta.addWidget(self.quickCategory)
-
-        self.quickButton = QPushButton("+  Add Task")
-        self.quickButton.setObjectName("quickAddButton")
-        self.quickButton.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.quickButton.clicked.connect(self.quick_add)
-
-        quick.addWidget(quick_title)
-        quick.addWidget(self.quickTitle)
-        quick.addLayout(quick_meta)
-        quick.addWidget(self.quickButton)
-
-        side_layout.addWidget(self.quickCard)
-
-        self.detailCard = QFrame()
-        self.detailCard.setObjectName("taskSideCard")
-
-        details = QVBoxLayout(self.detailCard)
-        details.setContentsMargins(16, 16, 16, 16)
-        details.setSpacing(10)
-
-        detail_title = QLabel("Task Details")
-        detail_title.setObjectName("sideTitle")
-
-        self.detailBody = QVBoxLayout()
-        self.detailBody.setSpacing(8)
-
-        details.addWidget(detail_title)
-        details.addLayout(self.detailBody)
-
-        side_layout.addWidget(self.detailCard, 1)
+        self.detail_card = SurfaceCard("Task Details")
+        self.detail_body = QVBoxLayout()
+        self.detail_body.setSpacing(9)
+        self.detail_card.body.addLayout(self.detail_body)
+        side_layout.addWidget(self.detail_card, 1)
 
         body.addWidget(self.side)
-
         root.addLayout(body, 1)
 
         self.apply_theme()
         self.set_filter("All")
         self.load_tasks()
 
-
-    def _summary_row(self, label, icon):
-
+    def _summary_row(self, label, icon_name, micro):
         frame = QFrame()
         frame.setObjectName("summaryRow")
-
         row = QHBoxLayout(frame)
         row.setContentsMargins(12, 10, 12, 10)
         row.setSpacing(10)
 
-        icon_label = QLabel(
-            "✓"
-            if icon == "check"
-            else ("▣" if icon == "calendar" else "▥")
-        )
-        icon_label.setObjectName("summaryIcon")
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setFixedSize(42, 42)
-
+        icon = IconCircle(icon_name, 42)
         text = QVBoxLayout()
         text.setSpacing(0)
-
         value = QLabel("0")
         value.setObjectName("summaryValue")
-
         caption = QLabel(label)
         caption.setObjectName("summaryCaption")
-
         text.addWidget(value)
         text.addWidget(caption)
+        micro_label = QLabel(micro)
+        micro_label.setObjectName("summaryMicro")
 
-        row.addWidget(icon_label)
+        row.addWidget(icon)
         row.addLayout(text, 1)
-
-        return {
-            "frame": frame,
-            "value": value,
-            "caption": caption,
-        }
-
+        row.addWidget(micro_label)
+        return {"frame": frame, "value": value, "icon": icon}
 
     def set_filter(self, key):
-
         self.current_filter = key
-
-        for button_key, button in self.tabButtons.items():
-            button.setProperty(
-                "active",
-                button_key == key
-            )
+        for tab_key, button in self.tabs.items():
+            button.setProperty("active", tab_key == key)
             button.style().unpolish(button)
             button.style().polish(button)
-
         self.load_tasks()
 
-
-    def _clear_task_rows(self):
-
-        while self.taskLayout.count() > 1:
-
-            item = self.taskLayout.takeAt(0)
-            widget = item.widget()
-
-            if widget:
-                widget.deleteLater()
-
-
     def _matches_filter(self, task):
-
         today = datetime.now().strftime("%Y-%m-%d")
-
         if self.current_filter == "Completed":
             return task.completed
-
-        if task.completed:
-            return self.current_filter == "All"
-
         if self.current_filter == "Today":
-            return not task.task_date or task.task_date == today
-
+            return not task.completed and (not task.task_date or task.task_date <= today)
         if self.current_filter == "Upcoming":
-            return bool(task.task_date and task.task_date > today)
-
+            return not task.completed and bool(task.task_date and task.task_date > today)
         return True
 
-
     def _sort_tasks(self, tasks):
-
         mode = self.sort.currentText()
-
         if mode == "Priority":
-            return sorted(
-                tasks,
-                key=lambda t: (
-                    t.completed,
-                    t.priority_order,
-                    t.task_date or "9999-99-99",
-                )
-            )
-
+            return sorted(tasks, key=lambda t: (t.completed, t.priority_order, t.task_date or "9999-99-99"))
         if mode == "Due Date":
-            return sorted(
-                tasks,
-                key=lambda t: (
-                    t.completed,
-                    t.task_date or "9999-99-99",
-                )
-            )
-
+            return sorted(tasks, key=lambda t: (t.completed, t.task_date or "9999-99-99"))
         if mode == "Title A-Z":
-            return sorted(
-                tasks,
-                key=lambda t: t.title.lower()
-            )
-
-        return list(reversed(tasks))
-
+            return sorted(tasks, key=lambda t: t.title.lower())
+        return sorted(tasks, key=lambda t: t.id, reverse=True)
 
     def load_tasks(self):
-
-        self.dateLabel.setText(
-            datetime.now().strftime("%a, %b %d, %Y")
-        )
-
-        self._clear_task_rows()
+        self._sync_header()
+        clear_layout(self.task_layout, keep_stretch=True)
 
         tasks = self.task_manager.get_all_tasks()
-
-        text = self.search.text().strip().lower()
-
-        if text:
+        query = self.search.text().strip().lower()
+        if query:
             tasks = [
-                task
-                for task in tasks
-                if (
-                    text in task.title.lower()
-                    or text in task.category.lower()
-                    or text in task.description.lower()
-                )
+                t for t in tasks
+                if query in t.title.lower() or query in t.category.lower() or query in (t.description or "").lower()
             ]
-
-        tasks = [
-            task
-            for task in tasks
-            if self._matches_filter(task)
-        ]
-
+        tasks = [t for t in tasks if self._matches_filter(t)]
         tasks = self._sort_tasks(tasks)
 
         today = datetime.now().strftime("%Y-%m-%d")
-
-        today_tasks = [
-            task
-            for task in tasks
-            if not task.completed
-            and (
-                not task.task_date
-                or task.task_date == today
-            )
-        ]
-
-        upcoming = [
-            task
-            for task in tasks
-            if not task.completed
-            and task.task_date
-            and task.task_date > today
-        ]
-
-        completed = [
-            task
-            for task in tasks
-            if task.completed
-        ]
+        today_tasks = [t for t in tasks if not t.completed and (not t.task_date or t.task_date <= today)]
+        upcoming = [t for t in tasks if not t.completed and t.task_date and t.task_date > today]
+        completed = [t for t in tasks if t.completed]
 
         if self.current_filter == "Today":
             groups = (("Today", today_tasks),)
-
         elif self.current_filter == "Upcoming":
             groups = (("Upcoming", upcoming),)
-
         elif self.current_filter == "Completed":
             groups = (("Completed", completed),)
-
         else:
-            groups = (
-                ("Today", today_tasks),
-                ("Upcoming", upcoming),
-                ("Completed", completed),
-            )
+            groups = (("Today", today_tasks), ("Upcoming", upcoming), ("Completed", completed))
 
-        for title, group_tasks in groups:
+        added = False
+        for title, group in groups:
+            if group:
+                self._add_group(title, group)
+                added = True
 
-            if not group_tasks:
-                continue
-
-            self._add_group(title, group_tasks)
-
-        if not any(group for _name, group in groups):
-
+        if not added:
             empty = QLabel("Nothing here yet.")
             empty.setObjectName("emptyTasks")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.taskLayout.insertWidget(0, empty)
+            self.task_layout.insertWidget(0, empty)
 
         self._refresh_summary()
-
-        if self.selected_task is not None:
-            current = next(
-                (
-                    task
-                    for task in self.task_manager.get_all_tasks()
-                    if task.id == self.selected_task.id
-                ),
-                None
-            )
-            self.selected_task = current
-
+        self._refresh_selected()
         self._render_details()
 
+    def _sync_header(self):
+        hour = datetime.now().hour
+        greeting = "Good morning" if hour < 12 else ("Good afternoon" if hour < 18 else "Good evening")
+        self.eyebrow.setText(greeting)
+        self.date_label.setText(datetime.now().strftime("%a, %b %d, %Y"))
 
     def _add_group(self, title, tasks):
-
-        wrap = QWidget()
-        layout = QVBoxLayout(wrap)
+        group_widget = QWidget()
+        group_widget.setStyleSheet("background:transparent;")
+        layout = QVBoxLayout(group_widget)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
+        layout.setSpacing(6)
 
         head = QHBoxLayout()
-
+        chevron = QLabel("⌄")
+        chevron.setObjectName("groupChevron")
         name = QLabel(title)
-        name.setObjectName("taskGroupTitle")
-
-        count = QLabel(
-            f"{len(tasks)} task"
-            if len(tasks) == 1
-            else f"{len(tasks)} tasks"
-        )
-        count.setObjectName("taskGroupCount")
-
+        name.setObjectName("groupTitle")
+        count = QLabel(f"{len(tasks)} task" if len(tasks) == 1 else f"{len(tasks)} tasks")
+        count.setObjectName("groupCount")
+        head.addWidget(chevron)
         head.addWidget(name)
         head.addWidget(count)
         head.addStretch(1)
-
         layout.addLayout(head)
 
         for task in tasks:
-            layout.addWidget(
-                self._task_row(task)
-            )
+            row = TaskRow(task)
+            row.clicked.connect(lambda t=task: self.select_task(t))
+            row.toggleRequested.connect(self.toggle_task)
+            row.editRequested.connect(self.edit_task)
+            layout.addWidget(row)
 
-        self.taskLayout.insertWidget(
-            self.taskLayout.count() - 1,
-            wrap
-        )
-
-
-    def _task_row(self, task):
-
-        row = QFrame()
-        row.setObjectName("taskRow")
-        row.setCursor(Qt.CursorShape.PointingHandCursor)
-        row.mousePressEvent = (
-            lambda event, t=task:
-                self.select_task(t)
-        )
-
-        layout = QHBoxLayout(row)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(10)
-
-        checkbox = QPushButton(
-            "✓" if task.completed else ""
-        )
-        checkbox.setObjectName(
-            "taskCheckDone"
-            if task.completed
-            else "taskCheck"
-        )
-        checkbox.setFixedSize(24, 24)
-        checkbox.setCursor(Qt.CursorShape.PointingHandCursor)
-        checkbox.clicked.connect(
-            lambda _checked=False, t=task:
-                self.toggle_task(t)
-        )
-
-        title = QLabel(task.title)
-        title.setObjectName(
-            "taskRowTitleDone"
-            if task.completed
-            else "taskRowTitle"
-        )
-
-        category = QLabel(task.category)
-        category.setObjectName("taskCategory")
-
-        due_text = "Today"
-
-        if task.task_date:
-            due_text = task.task_date
-
-        due = QLabel(due_text)
-        due.setObjectName("taskDue")
-
-        priority = QLabel(
-            "Medium"
-            if task.priority == "Normal"
-            else task.priority
-        )
-        priority.setObjectName(
-            "priorityHigh"
-            if task.priority == "High"
-            else (
-                "priorityLow"
-                if task.priority == "Low"
-                else "priorityNormal"
-            )
-        )
-
-        more = QPushButton("•••")
-        more.setObjectName("taskMore")
-        more.setFixedWidth(34)
-        more.clicked.connect(
-            lambda _checked=False, t=task:
-                self.edit_task(t)
-        )
-
-        layout.addWidget(checkbox)
-        layout.addWidget(title, 1)
-        layout.addWidget(category)
-        layout.addWidget(due)
-        layout.addWidget(priority)
-        layout.addWidget(more)
-
-        return row
-
+        self.task_layout.insertWidget(self.task_layout.count() - 1, group_widget)
 
     def select_task(self, task):
-
         self.selected_task = task
         self._render_details()
 
-
     def toggle_task(self, task):
-
-        self.task_manager.complete_task(
-            task.id,
-            not task.completed
-        )
-
+        self.task_manager.complete_task(task.id, not task.completed)
         self.load_tasks()
 
-
     def edit_task(self, task):
-
         dialog = EditTaskDialog(task)
         dialog.taskUpdated.connect(self._save_edit)
+        dialog.exec()
+        self.load_tasks()
 
-        if dialog.exec():
-            self.load_tasks()
-
-
-    def _save_edit(
-        self,
-        task_id,
-        title,
-        time,
-        priority,
-        category,
-        task_date,
-        description,
-        color,
-        reminder,
-        repeat,
-        important,
-    ):
-
+    def _save_edit(self, task_id, title, time, priority, category, task_date, description, color, reminder, repeat, important):
         self.task_manager.edit_task(
             task_id=task_id,
             title=title,
@@ -657,386 +466,139 @@ class TasksPage(QWidget):
             important=important,
         )
 
-
     def quick_add(self):
-
-        title = self.quickTitle.text().strip()
-
+        title = self.quick_title.text().strip()
         if not title:
-            self.quickTitle.setFocus()
+            self.quick_title.setFocus()
             return
 
         self.task_manager.create_task(
             title=title,
-            task_date=self.quickDate.date().toString("yyyy-MM-dd"),
-            priority=self.quickPriority.currentText(),
-            category=self.quickCategory.currentText(),
+            task_date=self.quick_date.date().toString("yyyy-MM-dd"),
+            priority=self.quick_priority.currentText(),
+            category=self.quick_category.currentText(),
             color=ThemeManager.get().Colors.PRIMARY,
         )
-
-        self.quickTitle.clear()
-        self.quickDate.setDate(QDate.currentDate())
-        self.quickPriority.setCurrentText("Normal")
-
+        self.quick_title.clear()
+        self.quick_date.setDate(QDate.currentDate())
+        self.quick_priority.setCurrentText("Normal")
         self.load_tasks()
 
-
     def _refresh_summary(self):
-
         tasks = self.task_manager.get_all_tasks()
         today = datetime.now().strftime("%Y-%m-%d")
+        next_week = (datetime.now().date() + timedelta(days=7)).strftime("%Y-%m-%d")
 
         completed_today = sum(
-            1
-            for task in tasks
-            if (
-                task.completed
-                and task.completed_at
-                and task.completed_at.startswith(today)
-            )
+            1 for t in tasks
+            if t.completed and t.completed_at and t.completed_at.startswith(today)
         )
-
         upcoming = sum(
-            1
-            for task in tasks
-            if (
-                not task.completed
-                and task.task_date
-                and task.task_date > today
-            )
+            1 for t in tasks
+            if not t.completed and t.task_date and today < t.task_date <= next_week
         )
-
         focus = self.focus_manager.get_week_minutes()
 
-        self.completedSummary["value"].setText(
-            str(completed_today)
+        self.completed_summary["value"].setText(str(completed_today))
+        self.upcoming_summary["value"].setText(str(upcoming))
+        self.focus_summary["value"].setText(self._focus_text(focus))
+
+    @staticmethod
+    def _focus_text(minutes):
+        hours, mins = divmod(max(0, int(minutes or 0)), 60)
+        return f"{hours}h {mins}m" if hours and mins else (f"{hours}h" if hours else f"{mins}m")
+
+    def _refresh_selected(self):
+        if self.selected_task is None:
+            return
+        self.selected_task = next(
+            (t for t in self.task_manager.get_all_tasks() if t.id == self.selected_task.id),
+            None,
         )
-        self.upcomingSummary["value"].setText(
-            str(upcoming)
-        )
-
-        if focus >= 60:
-            hours, minutes = divmod(focus, 60)
-            text = (
-                f"{hours}h {minutes}m"
-                if minutes
-                else f"{hours}h"
-            )
-        else:
-            text = f"{focus}m"
-
-        self.focusSummary["value"].setText(text)
-
 
     def _render_details(self):
-
-        while self.detailBody.count():
-
-            item = self.detailBody.takeAt(0)
-            widget = item.widget()
-
-            if widget:
-                widget.deleteLater()
+        clear_layout(self.detail_body)
 
         if self.selected_task is None:
-
-            icon = QLabel("▤")
-            icon.setObjectName("detailEmptyIcon")
-            icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            text = QLabel(
-                "Select a task to view details\n"
-                "Add notes, set reminders, and track it here."
-            )
-            text.setObjectName("detailEmptyText")
-            text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            text.setWordWrap(True)
-
-            self.detailBody.addStretch(1)
-            self.detailBody.addWidget(icon)
-            self.detailBody.addWidget(text)
-            self.detailBody.addStretch(1)
-
+            icon = IconCircle("notebook", 52)
+            hint = QLabel("Select a task to view details")
+            hint.setObjectName("detailHintTitle")
+            hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            sub = QLabel("See notes, due date, priority and edit the task here.")
+            sub.setObjectName("detailHint")
+            sub.setWordWrap(True)
+            sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.detail_body.addStretch(1)
+            self.detail_body.addWidget(icon, 0, Qt.AlignmentFlag.AlignHCenter)
+            self.detail_body.addWidget(hint)
+            self.detail_body.addWidget(sub)
+            self.detail_body.addStretch(1)
             return
 
         task = self.selected_task
-
         title = QLabel(task.title)
-        title.setObjectName("detailTaskTitle")
+        title.setObjectName("detailTitle")
         title.setWordWrap(True)
-
-        meta = QLabel(
-            f"{task.category}  •  {task.priority}  •  "
-            f"{task.task_date or 'No due date'}"
-        )
+        meta = QLabel(f"{task.category or 'General'}  •  {'Medium' if task.priority == 'Normal' else task.priority}  •  {TaskRow._friendly_date(task.task_date)}")
         meta.setObjectName("detailMeta")
         meta.setWordWrap(True)
-
-        description = QLabel(
-            task.description or "No description yet."
-        )
+        description = QLabel(task.description or "No description yet.")
         description.setObjectName("detailDescription")
         description.setWordWrap(True)
 
         edit = QPushButton("Edit Task")
         edit.setObjectName("detailEdit")
         edit.setCursor(Qt.CursorShape.PointingHandCursor)
-        edit.clicked.connect(
-            lambda _checked=False, t=task:
-                self.edit_task(t)
-        )
+        edit.clicked.connect(lambda: self.edit_task(task))
 
-        self.detailBody.addWidget(title)
-        self.detailBody.addWidget(meta)
-        self.detailBody.addWidget(description)
-        self.detailBody.addStretch(1)
-        self.detailBody.addWidget(edit)
-
+        self.detail_body.addWidget(title)
+        self.detail_body.addWidget(meta)
+        self.detail_body.addSpacing(4)
+        self.detail_body.addWidget(description)
+        self.detail_body.addStretch(1)
+        self.detail_body.addWidget(edit)
 
     def apply_theme(self):
-
-        theme = ThemeManager.get()
-        c = theme.Colors
+        c = ThemeManager.get().Colors
+        for card in (self.summary_card, self.quick_card, self.detail_card):
+            card.apply_theme()
+        for item in (self.completed_summary, self.upcoming_summary, self.focus_summary):
+            item["icon"].apply_theme()
+        self.quick_button.apply_theme()
 
         self.setStyleSheet(
             f"""
-            QWidget {{
-                background:transparent;
+            QLabel#tasksEyebrow {{ color:{c.TEXT}; background:transparent; border:none; font-size:24px; font-weight:700; }}
+            QLabel#tasksHero {{ color:{c.PRIMARY_LIGHT}; background:transparent; border:none; font-size:30px; font-weight:800; }}
+            QLabel#tasksDate {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:10px; }}
+            QLineEdit#tasksSearch, QLineEdit#quickTitle, QComboBox#tasksSort, QComboBox#quickInput, QDateEdit#quickInput {{
+                color:{c.TEXT}; background:{c.SURFACE}; border:1px solid {c.BORDER}; border-radius:11px; padding:8px 11px; font-size:10px;
             }}
-
-            QLabel#tasksEyebrow {{
-                color:{c.TEXT};
-                font-size:23px;
-                font-weight:700;
-                background:transparent;
-            }}
-
-            QLabel#tasksHero {{
-                color:{c.PRIMARY};
-                font-size:34px;
-                font-weight:900;
-                background:transparent;
-            }}
-
-            QLabel#tasksDate,
-            QLabel#toolbarLabel,
-            QLabel#taskGroupCount,
-            QLabel#taskDue,
-            QLabel#summaryCaption,
-            QLabel#detailMeta,
-            QLabel#detailDescription,
-            QLabel#detailEmptyText {{
-                color:{c.TEXT_SECONDARY};
-                background:transparent;
-                font-size:11px;
-            }}
-
-            QLineEdit#tasksSearch,
-            QLineEdit#quickTitle,
-            QComboBox#tasksSort,
-            QComboBox#quickInput,
-            QDateEdit#quickInput {{
-                background:{c.SURFACE};
-                color:{c.TEXT};
-                border:1px solid {c.BORDER};
-                border-radius:13px;
-                padding:8px 11px;
-            }}
-
-            QLineEdit#tasksSearch:focus,
-            QLineEdit#quickTitle:focus,
-            QComboBox#tasksSort:focus,
-            QDateEdit#quickInput:focus {{
-                border-color:{c.BORDER_ACTIVE};
-            }}
-
-            QFrame#tasksToolbar {{
-                background:{c.SURFACE};
-                border:1px solid {c.BORDER};
-                border-radius:14px;
-            }}
-
-            QPushButton#taskTab {{
-                background:transparent;
-                color:{c.TEXT_SECONDARY};
-                border:none;
-                border-radius:10px;
-                padding:8px 22px;
-                font-size:11px;
-            }}
-
-            QPushButton#taskTab[active="true"] {{
-                background:{c.PRIMARY};
-                color:white;
-                font-weight:750;
-            }}
-
-            QLabel#taskGroupTitle {{
-                color:{c.TEXT};
-                background:transparent;
-                font-size:18px;
-                font-weight:800;
-            }}
-
-            QFrame#taskRow {{
-                background:{c.SURFACE};
-                border:1px solid {c.BORDER};
-                border-radius:12px;
-            }}
-
-            QFrame#taskRow:hover {{
-                border-color:{c.BORDER_ACTIVE};
-                background:{c.SURFACE_ALT};
-            }}
-
-            QPushButton#taskCheck,
-            QPushButton#taskCheckDone {{
-                background:transparent;
-                color:white;
-                border:2px solid {c.TEXT_SECONDARY};
-                border-radius:12px;
-                font-weight:800;
-            }}
-
-            QPushButton#taskCheckDone {{
-                background:{c.PRIMARY};
-                border-color:{c.PRIMARY};
-            }}
-
-            QLabel#taskRowTitle {{
-                color:{c.TEXT};
-                background:transparent;
-                font-size:12px;
-                font-weight:600;
-            }}
-
-            QLabel#taskRowTitleDone {{
-                color:{c.TEXT_SECONDARY};
-                background:transparent;
-                font-size:12px;
-                text-decoration:line-through;
-            }}
-
-            QLabel#taskCategory {{
-                color:{c.PRIMARY};
-                background:rgba(70,115,255,0.14);
-                border:1px solid rgba(70,115,255,0.18);
-                border-radius:9px;
-                padding:4px 9px;
-                font-size:10px;
-            }}
-
-            QLabel#priorityHigh {{
-                color:#FF818A;
-                background:rgba(255,90,100,0.12);
-                border:1px solid rgba(255,90,100,0.20);
-                border-radius:10px;
-                padding:4px 9px;
-                font-size:10px;
-            }}
-
-            QLabel#priorityNormal {{
-                color:#FFD06A;
-                background:rgba(255,190,80,0.10);
-                border:1px solid rgba(255,190,80,0.18);
-                border-radius:10px;
-                padding:4px 9px;
-                font-size:10px;
-            }}
-
-            QLabel#priorityLow {{
-                color:{c.PRIMARY};
-                background:rgba(70,115,255,0.10);
-                border:1px solid rgba(70,115,255,0.18);
-                border-radius:10px;
-                padding:4px 9px;
-                font-size:10px;
-            }}
-
-            QPushButton#taskMore {{
-                color:{c.TEXT_SECONDARY};
-                background:transparent;
-                border:none;
-                font-size:14px;
-            }}
-
-            QFrame#taskSideCard {{
-                background:{c.SURFACE};
-                border:1px solid {c.BORDER};
-                border-radius:14px;
-            }}
-
-            QLabel#sideTitle {{
-                color:{c.TEXT};
-                background:transparent;
-                font-size:16px;
-                font-weight:800;
-            }}
-
-            QFrame#summaryRow {{
-                background:{c.SURFACE_ALT};
-                border:1px solid {c.BORDER};
-                border-radius:11px;
-            }}
-
-            QLabel#summaryIcon {{
-                color:{c.PRIMARY};
-                background:rgba(70,115,255,0.14);
-                border:1px solid rgba(70,115,255,0.18);
-                border-radius:21px;
-                font-size:17px;
-                font-weight:800;
-            }}
-
-            QLabel#summaryValue {{
-                color:{c.TEXT};
-                background:transparent;
-                font-size:20px;
-                font-weight:800;
-            }}
-
-            QPushButton#quickAddButton,
-            QPushButton#detailEdit {{
-                background:{c.PRIMARY};
-                color:white;
-                border:none;
-                border-radius:12px;
-                padding:10px 14px;
-                font-weight:800;
-            }}
-
-            QLabel#detailEmptyIcon {{
-                color:{c.TEXT_SECONDARY};
-                background:transparent;
-                font-size:34px;
-            }}
-
-            QLabel#detailTaskTitle {{
-                color:{c.TEXT};
-                background:transparent;
-                font-size:18px;
-                font-weight:800;
-            }}
-
-            QLabel#emptyTasks {{
-                color:{c.TEXT_SECONDARY};
-                background:{c.SURFACE};
-                border:1px solid {c.BORDER};
-                border-radius:14px;
-                padding:40px;
-                font-size:12px;
-            }}
+            QLineEdit#tasksSearch {{ border-radius:16px; padding:9px 14px; font-size:11px; }}
+            QLineEdit#tasksSearch:focus, QLineEdit#quickTitle:focus, QComboBox#tasksSort:focus, QComboBox#quickInput:focus, QDateEdit#quickInput:focus {{ border-color:{c.BORDER_ACTIVE}; }}
+            QFrame#tasksToolbar {{ background:{c.SURFACE}; border:1px solid {c.BORDER}; border-radius:13px; }}
+            QPushButton#taskTab {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; border-radius:9px; padding:8px 22px; font-size:10px; }}
+            QPushButton#taskTab:hover {{ color:{c.TEXT}; background:rgba(80,105,155,0.12); }}
+            QPushButton#taskTab[active="true"] {{ color:white; background:{c.PRIMARY}; font-weight:700; }}
+            QLabel#groupChevron {{ color:{c.BLUE_SOFT}; background:transparent; border:none; font-size:16px; }}
+            QLabel#groupTitle {{ color:{c.TEXT}; background:transparent; border:none; font-size:17px; font-weight:800; }}
+            QLabel#groupCount {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:10px; }}
+            QFrame#summaryRow {{ background:{c.SURFACE_ALT}; border:1px solid {c.BORDER}; border-radius:11px; }}
+            QLabel#summaryValue {{ color:{c.TEXT}; background:transparent; border:none; font-size:20px; font-weight:800; }}
+            QLabel#summaryCaption {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:9px; }}
+            QLabel#summaryMicro {{ color:{c.GREEN}; background:transparent; border:none; font-size:9px; }}
+            QLabel#detailHintTitle {{ color:{c.TEXT}; background:transparent; border:none; font-size:12px; font-weight:700; }}
+            QLabel#detailHint, QLabel#detailMeta, QLabel#detailDescription {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:10px; }}
+            QLabel#detailTitle {{ color:{c.TEXT}; background:transparent; border:none; font-size:17px; font-weight:800; }}
+            QPushButton#detailEdit {{ color:white; background:{c.PRIMARY}; border:none; border-radius:10px; padding:9px 12px; font-weight:700; }}
+            QLabel#emptyTasks {{ color:{c.TEXT_SECONDARY}; background:{c.SURFACE}; border:1px solid {c.BORDER}; border-radius:14px; padding:42px; font-size:11px; }}
             """
         )
 
-
     def refresh_theme(self):
-
         self.apply_theme()
         self.load_tasks()
 
-
     def showEvent(self, event):
-
         super().showEvent(event)
         self.load_tasks()
