@@ -3,17 +3,22 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Virtual environments
+# Local environments
 .venv/
 venv/
 env/
+
+# Flux user data
+database/flux.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Build output
 build/
 dist/
 release/
-installer_output/
-*.spec.bak
+*.spec
 
 # IDE / OS
 .vscode/
