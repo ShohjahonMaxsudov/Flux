@@ -31,6 +31,12 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install pyinstaller
 
+      - name: Smoke test redesigned UI
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+          python -c "from PySide6.QtWidgets import QApplication; from app import Flux; app=QApplication([]); w=Flux(); app.processEvents(); print('Flux redesigned UI started successfully'); w.close(); app.quit()"
+
       - name: Build Flux
         shell: pwsh
         run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name "Flux" --icon "assets\flux.ico" --version-file "version_info.txt" --contents-directory "." --add-data "assets;assets" --collect-submodules "themes" --collect-submodules "animations" --collect-submodules "ui" --collect-submodules "utils" --collect-submodules "database" "main.py"
