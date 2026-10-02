@@ -87,9 +87,9 @@ class Dashboard(QWidget):
 
 
         self.todayCard = StatCard(
-            "Today's Tasks",
+            "Today",
             "0",
-            subtitle="Total tasks",
+            subtitle="Tasks on deck",
             icon="check",
             accent_index=0
         )
@@ -97,7 +97,7 @@ class Dashboard(QWidget):
         self.completedCard = StatCard(
             "Completed",
             "0",
-            subtitle="Tasks done",
+            subtitle="Finished",
             icon="check",
             accent_index=1
         )
@@ -105,7 +105,7 @@ class Dashboard(QWidget):
         self.pendingCard = StatCard(
             "Pending",
             "0",
-            subtitle="Tasks left",
+            subtitle="Still moving",
             icon="clock",
             accent_index=2
         )
@@ -113,7 +113,7 @@ class Dashboard(QWidget):
         self.streakCard = StatCard(
             "Streak",
             "0 Days",
-            subtitle="Keep it up!",
+            subtitle="Consistency",
             icon="flame",
             accent_index=3
         )
@@ -153,7 +153,7 @@ class Dashboard(QWidget):
 
 
         self.title = QLabel(
-            "Today's Schedule"
+            "Today's Flow"
         )
 
 
