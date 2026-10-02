@@ -127,7 +127,7 @@ jobs:
           EOF
 
           cat > .release-notes/v1.0.2.md <<'EOF'
-          ## Flux v1.0.2 — Emergency Dock Hotfix
+          ## Flux v1.0.2 — Developer BETA
 
           This hotfix replaces the first Frost Dock implementation after it introduced heavy lag and a cluttered navigation look.
 
@@ -152,7 +152,7 @@ jobs:
           EOF
 
           cat > .release-notes/v1.0.3.md <<'EOF'
-          ## Flux v1.0.3 — Navigation & 60 FPS Patch
+          ## Flux v1.0.3 — Developer BETA
 
           ### Navigation
           - Larger dock icons and a larger active glass bubble.
@@ -195,38 +195,17 @@ jobs:
           publish_release "v0.3.0" "Flux 1.2 — Liquid Glass" ".release-notes/v0.3.0.md"
           publish_release "v1.0.0" "Flux — Notes Update" ".release-notes/v1.0.0.md"
 
-      - name: Update current release
+      - name: Restore stable release and retract developer betas
         shell: bash
         run: |
           if gh release view "v1.0.1" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "v1.0.1"               --repo "$GITHUB_REPOSITORY"               --latest=false
+            gh release edit "v1.0.1"               --repo "$GITHUB_REPOSITORY"               --title "Flux — Themes & Quality-of-Life Update"               --notes-file ".release-notes/v1.0.1.md"               --latest
           fi
 
           if gh release view "v1.0.2" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "v1.0.2"               --repo "$GITHUB_REPOSITORY"               --latest=false
+            gh release edit "v1.0.2"               --repo "$GITHUB_REPOSITORY"               --title "Flux v1.0.2 — Developer BETA"               --notes-file ".release-notes/v1.0.2.md"               --draft               --latest=false
           fi
 
           if gh release view "v1.0.3" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "v1.0.3"               --repo "$GITHUB_REPOSITORY"               --title "Flux v1.0.3 — Navigation & 60 FPS Patch"               --notes-file ".release-notes/v1.0.3.md"               --latest
-          else
-            gh release create "v1.0.3"               --repo "$GITHUB_REPOSITORY"               --target main               --title "Flux v1.0.3 — Navigation & 60 FPS Patch"               --notes-file ".release-notes/v1.0.3.md"               --latest
+            gh release edit "v1.0.3"               --repo "$GITHUB_REPOSITORY"               --title "Flux v1.0.3 — Developer BETA"               --notes-file ".release-notes/v1.0.3.md"               --draft               --latest=false
           fi
-
-      - name: Download current Windows build
-        shell: bash
-        run: |
-          mkdir -p current-build
-          gh run download 36831677743             --repo "$GITHUB_REPOSITORY"             --name "Flux-windows-build"             --dir current-build
-
-          find current-build -maxdepth 2 -type f -print
-
-      - name: Attach current installer and portable build
-        shell: bash
-        run: |
-          SETUP=$(find current-build -type f -name "FluxSetup.exe" | head -n 1)
-          PORTABLE=$(find current-build -type f -name "Flux-portable-windows.zip" | head -n 1)
-
-          test -n "$SETUP"
-          test -n "$PORTABLE"
-
-          gh release upload "v1.0.3"             "$SETUP#FluxSetup.exe"             "$PORTABLE#Flux-portable-windows.zip"             --repo "$GITHUB_REPOSITORY"             --clobber
