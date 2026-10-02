@@ -1,6 +1,9 @@
 from PySide6.QtCore import QObject, Signal
 
 from themes import base
+from themes import midnight
+from themes import violet_glass
+from themes import graphite
 from themes import dark
 from themes import nebula
 from themes import void
@@ -50,6 +53,9 @@ class ThemeManager:
     # header's theme button cycles through.
 
     themes = {
+        "midnight": midnight,
+        "violet_glass": violet_glass,
+        "graphite": graphite,
         "dark": dark,
         "nebula": nebula,
         "void": void,
@@ -67,7 +73,7 @@ class ThemeManager:
     }
 
 
-    current_name = "dark"
+    current_name = "midnight"
 
     _signal = _ThemeSignal()
 
@@ -118,7 +124,7 @@ class ThemeManager:
     @classmethod
     def get(cls):
 
-        return cls.themes.get(cls.current_name, dark)
+        return cls.themes.get(cls.current_name, midnight)
 
 
     @classmethod
@@ -178,7 +184,7 @@ class ThemeManager:
     @classmethod
     def style(cls, name=None):
 
-        theme = cls.themes.get(name or cls.current_name, dark)
+        theme = cls.themes.get(name or cls.current_name, midnight)
 
         return getattr(theme, "Style", base.Style)
 
@@ -186,6 +192,6 @@ class ThemeManager:
     @classmethod
     def atmosphere(cls, name=None):
 
-        theme = cls.themes.get(name or cls.current_name, dark)
+        theme = cls.themes.get(name or cls.current_name, midnight)
 
         return getattr(theme, "Atmosphere", base.Atmosphere)
