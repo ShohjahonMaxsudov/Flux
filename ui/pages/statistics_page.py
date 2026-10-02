@@ -175,8 +175,15 @@ class CompletionDonut(QWidget):
         font.setPointSize(22)
         font.setBold(True)
         painter.setFont(font)
+        center_y = self.height() / 2
+
         painter.drawText(
-            self.rect().adjusted(0, 10, 0, -18),
+            QRectF(
+                0,
+                center_y - 34,
+                self.width(),
+                38,
+            ),
             Qt.AlignmentFlag.AlignCenter,
             f"{self.percent}%",
         )
@@ -186,7 +193,12 @@ class CompletionDonut(QWidget):
         font.setBold(False)
         painter.setFont(font)
         painter.drawText(
-            self.rect().adjusted(0, 78, 0, 0),
+            QRectF(
+                0,
+                center_y + 5,
+                self.width(),
+                22,
+            ),
             Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
             "Completion",
         )
