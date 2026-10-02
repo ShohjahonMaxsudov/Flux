@@ -72,6 +72,28 @@ class TasksPage(QWidget):
 
 
 
+        # QUICK OVERVIEW
+
+        overview = QHBoxLayout()
+        overview.setSpacing(12)
+
+        self.totalCard, self.totalValue = self._summary_card("TOTAL")
+        self.pendingCard, self.pendingValue = self._summary_card("PENDING")
+        self.completedCard, self.completedValue = self._summary_card("COMPLETED")
+        self.importantCard, self.importantValue = self._summary_card("IMPORTANT")
+
+        for card in (
+            self.totalCard,
+            self.pendingCard,
+            self.completedCard,
+            self.importantCard
+        ):
+            overview.addWidget(card, 1)
+
+        root.addLayout(overview)
+
+
+
         # TOOLBAR
 
         tools = QHBoxLayout()
@@ -221,9 +243,80 @@ class TasksPage(QWidget):
 
 
 
+    def _summary_card(self, caption):
+
+        card = QFrame()
+        card.setObjectName("taskSummaryCard")
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(2)
+
+        value = QLabel("0")
+        value.setObjectName("taskSummaryValue")
+
+        label = QLabel(caption)
+        label.setObjectName("taskSummaryCaption")
+
+        layout.addWidget(value)
+        layout.addWidget(label)
+
+        return card, value
+
+
+    def _update_summary(self, tasks):
+
+        completed = sum(
+            1
+            for task in tasks
+            if task.completed
+        )
+
+        important = sum(
+            1
+            for task in tasks
+            if task.important
+        )
+
+        self.totalValue.setText(str(len(tasks)))
+        self.pendingValue.setText(str(len(tasks) - completed))
+        self.completedValue.setText(str(completed))
+        self.importantValue.setText(str(important))
+
+
     def apply_theme(self):
 
         theme = ThemeManager.get()
+
+        for card in (
+            self.totalCard,
+            self.pendingCard,
+            self.completedCard,
+            self.importantCard
+        ):
+            card.setStyleSheet(
+                f"""
+                QFrame#taskSummaryCard{{
+                    background:{theme.Colors.SURFACE};
+                    border:1px solid {theme.Colors.BORDER};
+                    border-radius:14px;
+                }}
+                QLabel#taskSummaryValue{{
+                    color:{theme.Colors.TEXT};
+                    font-size:24px;
+                    font-weight:800;
+                    background:transparent;
+                    border:none;
+                }}
+                QLabel#taskSummaryCaption{{
+                    color:{theme.Colors.TEXT_SECONDARY};
+                    font-size:10px;
+                    font-weight:700;
+                    background:transparent;
+                    border:none;
+                }}
+                """
+            )
 
 
         self.title.setStyleSheet(
@@ -416,7 +509,15 @@ class TasksPage(QWidget):
 
 
 
-        tasks = self.task_manager.get_all_tasks()
+        all_tasks = self.task_manager.get_all_tasks()
+
+        self._update_summary(
+            all_tasks
+        )
+
+        tasks = list(
+            all_tasks
+        )
 
 
         text = self.search.text().lower()
