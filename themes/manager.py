@@ -1,197 +1,82 @@
 from PySide6.QtCore import QObject, Signal
 
-from themes import base
-from themes import midnight
-from themes import violet_glass
-from themes import graphite
-from themes import dark
-from themes import nebula
-from themes import void
-from themes import ocean
-from themes import borealis
-from themes import astro
-from themes import synthwave
-from themes import ember
-from themes import forest
-from themes import snow
-from themes import mono
-from themes import light
-from themes import sakura
-from themes import custom
+from themes import base, midnight
 
 
 class _ThemeSignal(QObject):
-
-    # A plain classmethod-based manager has nowhere to emit a Qt
-    # signal from, so the notification lives on a small QObject
-    # instead. This is what lets the main window swap its animated
-    # background (aurora/starfield vs. the Sakura atmosphere) and
-    # refresh other live widgets the moment the theme changes,
-    # instead of only the widget that triggered the change updating
-    # itself.
-    #
-    # aboutToChange fires *before* the switch (old, new) so the main
-    # window can snapshot the old look and cross-fade to the new one.
-
     changed = Signal(str)
-
     aboutToChange = Signal(str, str)
-
-    # Fired when the CURRENT theme's own parameters change - the
-    # Custom theme's color or glow slider being tweaked live -
-    # rather than switching to a different theme. Listeners repaint
-    # everything the same way, but skip the cross-fade: nothing is
-    # actually changing identity, so a snap update reads as
-    # responsive tuning instead of a jarring transition.
-
     styleChanged = Signal(str)
 
 
 class ThemeManager:
+    """Compatibility layer for old pages; Flux v3 intentionally has one identity."""
 
-    # Order here is the order shown in the picker and the order the
-    # header's theme button cycles through.
-
-    themes = {
-        "midnight": midnight,
-        "violet_glass": violet_glass,
-        "graphite": graphite,
-        "dark": dark,
-        "nebula": nebula,
-        "void": void,
-        "ocean": ocean,
-        "borealis": borealis,
-        "astro": astro,
-        "synthwave": synthwave,
-        "ember": ember,
-        "forest": forest,
-        "snow": snow,
-        "mono": mono,
-        "light": light,
-        "sakura": sakura,
-        "custom": custom
-    }
-
-
+    themes = {"midnight": midnight}
     current_name = "midnight"
-
     _signal = _ThemeSignal()
 
-
     @classmethod
-    def set_theme(cls, name):
-
-        if name not in cls.themes:
-            return
-
-        if name == cls.current_name:
-            return
-
-        cls._signal.aboutToChange.emit(cls.current_name, name)
-
-        cls.current_name = name
-
-        cls._signal.changed.emit(name)
-
+    def set_theme(cls, _name):
+        if cls.current_name != "midnight":
+            old = cls.current_name
+            cls._signal.aboutToChange.emit(old, "midnight")
+            cls.current_name = "midnight"
+            cls._signal.changed.emit("midnight")
 
     @classmethod
     def subscribe(cls, slot):
-
         cls._signal.changed.connect(slot)
-
 
     @classmethod
     def subscribe_before(cls, slot):
-
         cls._signal.aboutToChange.connect(slot)
-
 
     @classmethod
     def subscribe_style(cls, slot):
-
         cls._signal.styleChanged.connect(slot)
-
 
     @classmethod
     def refresh_current(cls):
-
-        # For a theme tweaking its own live parameters (Custom's
-        # color/glow), not for switching themes - see styleChanged.
-
-        cls._signal.styleChanged.emit(cls.current_name)
-
+        cls._signal.styleChanged.emit("midnight")
 
     @classmethod
     def get(cls):
-
-        return cls.themes.get(cls.current_name, midnight)
-
+        cls.current_name = "midnight"
+        return midnight
 
     @classmethod
     def stylesheet(cls):
-
-        theme = cls.get()
-
-        return theme.GLOBAL_STYLESHEET
-
-
-    # -- metadata used by the picker, header button and lock screen
+        return midnight.GLOBAL_STYLESHEET
 
     @classmethod
     def names(cls):
-
-        return list(cls.themes)
-
+        return ["midnight"]
 
     @classmethod
-    def label(cls, name):
-
-        return getattr(cls.themes[name], "NAME", name.title())
-
+    def label(cls, _name):
+        return midnight.NAME
 
     @classmethod
-    def icon(cls, name):
-
-        return getattr(cls.themes[name], "ICON", "moon")
-
+    def icon(cls, _name):
+        return midnight.ICON
 
     @classmethod
-    def description(cls, name):
-
-        return getattr(cls.themes[name], "DESCRIPTION", "")
-
+    def description(cls, _name):
+        return midnight.DESCRIPTION
 
     @classmethod
-    def tagline(cls, name):
-
-        return getattr(cls.themes[name], "TAGLINE", cls.label(name))
-
+    def tagline(cls, _name):
+        return midnight.TAGLINE
 
     @classmethod
     def next_name(cls):
-
-        names = cls.names()
-
-        if cls.current_name not in names:
-
-            return names[0]
-
-        return names[(names.index(cls.current_name) + 1) % len(names)]
-
-
-    # -- style / atmosphere with safe fallbacks for old-style themes
+        return "midnight"
 
     @classmethod
-    def style(cls, name=None):
-
-        theme = cls.themes.get(name or cls.current_name, midnight)
-
-        return getattr(theme, "Style", base.Style)
-
+    def style(cls, _name=None):
+        return getattr(midnight, "Style", base.Style)
 
     @classmethod
-    def atmosphere(cls, name=None):
-
-        theme = cls.themes.get(name or cls.current_name, midnight)
-
-        return getattr(theme, "Atmosphere", base.Atmosphere)
+    def atmosphere(cls, _name=None):
+        return getattr(midnight, "Atmosphere", base.Atmosphere)
