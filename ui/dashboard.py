@@ -358,7 +358,7 @@ class Dashboard(QWidget):
         grid.setColumnStretch(1, 10)
 
         self.week_card = SurfaceCard("Weekly Overview", "Tasks, habits and focus at a glance.")
-        self.week_card.setMinimumHeight(226)
+        self.week_card.setMinimumHeight(244)
         self.week_details = HeaderLink("Details")
         self.week_details.clicked.connect(lambda: self.navigateRequested.emit("Statistics"))
         self.week_card.set_header_action(self.week_details)
@@ -366,7 +366,7 @@ class Dashboard(QWidget):
         self.week_card.body.addWidget(self.week_bars, 1)
 
         self.progress_card = SurfaceCard("Progress")
-        self.progress_card.setMinimumHeight(226)
+        self.progress_card.setMinimumHeight(244)
         self.progress_period = HeaderPill("This Week")
         self.progress_card.set_header_action(self.progress_period)
         progress_row = QHBoxLayout()
@@ -385,14 +385,14 @@ class Dashboard(QWidget):
         self.progress_card.body.addLayout(progress_row)
 
         self.focus_card = FocusTimerCard()
-        self.focus_card.setMinimumHeight(172)
+        self.focus_card.setMinimumHeight(192)
         self.focus_open = HeaderLink("Open")
         self.focus_open.clicked.connect(lambda: self.navigateRequested.emit("Focus"))
         self.focus_card.set_header_action(self.focus_open)
         self.focus_card.completed.connect(self.refresh_data)
 
         self.habits_card = SurfaceCard("Habits")
-        self.habits_card.setMinimumHeight(172)
+        self.habits_card.setMinimumHeight(192)
         self.habits_period = HeaderPill("This Week")
         self.habits_card.set_header_action(self.habits_period)
         self.habit_rows = QVBoxLayout()
@@ -400,7 +400,7 @@ class Dashboard(QWidget):
         self.habits_card.body.addLayout(self.habit_rows)
 
         self.recent_card = SurfaceCard("Recent Tasks")
-        self.recent_card.setMinimumHeight(188)
+        self.recent_card.setMinimumHeight(205)
         self.recent_link = HeaderLink("View all")
         self.recent_link.clicked.connect(lambda: self.navigateRequested.emit("Tasks"))
         self.recent_card.set_header_action(self.recent_link)
@@ -409,7 +409,7 @@ class Dashboard(QWidget):
         self.recent_card.body.addLayout(self.recent_rows)
 
         self.stats_card = SurfaceCard("Quick Stats")
-        self.stats_card.setMinimumHeight(188)
+        self.stats_card.setMinimumHeight(205)
         self.stats_period = HeaderPill("This Week")
         self.stats_card.set_header_action(self.stats_period)
         self.stats_grid = QGridLayout()
