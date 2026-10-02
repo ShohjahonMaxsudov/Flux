@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QApplication
 from app import Flux
 from utils.focus_manager import FocusManager
 from utils.habit_manager import HabitManager
+from utils.milestone_manager import MilestoneManager
 from utils.task_manager import TaskManager
 
 
@@ -66,6 +67,16 @@ def seed_demo_data():
 
     habits.close()
 
+    milestones = MilestoneManager()
+    if not milestones.all():
+        first = milestones.create("Ship Flux v3", 100, (datetime.now().date() + timedelta(days=12)).strftime("%Y-%m-%d"))
+        second = milestones.create("Finish university shortlist", 20, (datetime.now().date() + timedelta(days=24)).strftime("%Y-%m-%d"))
+        third = milestones.create("Complete 30 focus sessions", 30, (datetime.now().date() + timedelta(days=30)).strftime("%Y-%m-%d"))
+        milestones.set_progress(first, 70)
+        milestones.set_progress(second, 8)
+        milestones.set_progress(third, 21)
+    milestones.close()
+
 
 def render(window, name):
     app = QApplication.instance()
@@ -94,6 +105,11 @@ def main():
         ("Dashboard", "preview-dashboard.png"),
         ("Tasks", "preview-tasks.png"),
         ("Milestones", "preview-milestones.png"),
+        ("Focus", "preview-focus.png"),
+        ("Calendar", "preview-calendar.png"),
+        ("Notes", "preview-notes.png"),
+        ("Statistics", "preview-statistics.png"),
+        ("Settings", "preview-settings.png"),
     ):
         window = Flux()
         window.resize(1480, 900)
