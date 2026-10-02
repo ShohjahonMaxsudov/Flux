@@ -14,7 +14,18 @@ class Database:
 
         project_db = Path(__file__).parent / "flux.db"
 
-        if getattr(sys, "frozen", False) and os.name == "nt":
+        explicit_db = os.environ.get("FLUX_DB_PATH")
+
+        if explicit_db:
+
+            self.db_path = Path(explicit_db).expanduser().resolve()
+
+            self.db_path.parent.mkdir(
+                parents=True,
+                exist_ok=True
+            )
+
+        elif getattr(sys, "frozen", False) and os.name == "nt":
 
             data_root = Path(
                 os.environ.get("LOCALAPPDATA")
