@@ -1,0 +1,51 @@
+name: Flux v3 Visual QA
+
+on:
+  push:
+    branches:
+      - flux-v3-rework
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-qa:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Syntax check
+        shell: pwsh
+        run: python -m compileall -q .
+
+      - name: Render Flux UI previews
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+          FLUX_PREVIEW: "1"
+        run: python scripts/render_preview.py
+
+      - name: Upload visual QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flux-v3-previews
+          path: |
+            preview-dashboard.png
+            preview-tasks.png
+            preview-milestones.png
+          if-no-files-found: error
+          retention-days: 7
