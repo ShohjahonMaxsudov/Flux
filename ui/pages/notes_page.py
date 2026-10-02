@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 from utils.notes_manager import NotesManager
 from utils.glass_effects import GlassFrame, RefractiveGlassMixin
 from ui.icons import IconGlyph
+from ui.design_system import GradientButton, IconCircle, Metrics, SurfaceCard, clear_layout
 from themes.manager import ThemeManager
 
 
@@ -229,9 +230,14 @@ class NotesPage(QWidget):
 
         layout = QVBoxLayout(view)
 
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(
+            Metrics.PAGE_X,
+            Metrics.PAGE_Y,
+            Metrics.PAGE_X,
+            Metrics.PAGE_Y
+        )
 
-        layout.setSpacing(18)
+        layout.setSpacing(16)
 
 
         self.title = QLabel("Notes")
@@ -304,7 +310,12 @@ class NotesPage(QWidget):
 
         layout = QVBoxLayout(view)
 
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(
+            Metrics.PAGE_X,
+            Metrics.PAGE_Y,
+            Metrics.PAGE_X,
+            Metrics.PAGE_Y
+        )
 
         layout.setSpacing(16)
 
@@ -410,7 +421,7 @@ class NotesPage(QWidget):
 
 
         self.title.setStyleSheet(
-            f"color:{theme.Colors.TEXT}; font-size:32px; font-weight:800; background:transparent; border:none;"
+            f"color:{theme.Colors.TEXT}; font-size:28px; font-weight:800; background:transparent; border:none;"
         )
 
         self.subtitle.setStyleSheet(
@@ -452,9 +463,13 @@ class NotesPage(QWidget):
         self.editorCard.setStyleSheet(
             f"""
             QFrame#{self.editorCard.objectName()}{{
-                background:{theme.Colors.GLASS};
+                background:qlineargradient(
+                    x1:0,y1:0,x2:1,y2:1,
+                    stop:0 {theme.Colors.SURFACE_RAISED},
+                    stop:1 {theme.Colors.SURFACE}
+                );
                 border:1px solid {theme.Colors.BORDER};
-                border-radius:22px;
+                border-radius:18px;
             }}
             """
         )
@@ -526,48 +541,79 @@ class NotesPage(QWidget):
 
     def load_notes(self):
 
-        while self.notesLayout.count():
-
-            item = self.notesLayout.takeAt(0)
-
-            widget = item.widget()
-
-            if widget:
-
-                widget.hide()
-
-                widget.deleteLater()
-
+        clear_layout(self.notesLayout)
 
         notes = self.notes_manager.search(
             self.searchInput.text()
         )
 
-
         theme = ThemeManager.get()
-
 
         if not notes:
 
-            empty = QLabel("No notes yet — start your first entry ✎")
+            self.notesLayout.addStretch(1)
 
-            empty.setStyleSheet(
-                f"color:{theme.Colors.TEXT_SECONDARY}; font-size:14px; background:transparent; border:none;"
+            empty_card = SurfaceCard(
+                "No notes yet",
+                "Capture an idea, plan or thought before it disappears."
+            )
+            empty_card.setMaximumWidth(520)
+
+            empty_icon = IconCircle(
+                "notebook",
+                56
             )
 
-            self.notesLayout.addWidget(empty)
+            empty_hint = QLabel(
+                "Notes stay local in Flux and can be locked with a PIN."
+            )
+            empty_hint.setWordWrap(True)
+            empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            empty_hint.setStyleSheet(
+                f"color:{theme.Colors.TEXT_SECONDARY}; background:transparent; border:none; font-size:10px;"
+            )
 
+            create_button = GradientButton(
+                "Create your first note",
+                "plus"
+            )
+            create_button.clicked.connect(
+                self.create_note
+            )
+
+            empty_card.body.addWidget(
+                empty_icon,
+                0,
+                Qt.AlignmentFlag.AlignHCenter
+            )
+            empty_card.body.addWidget(
+                empty_hint
+            )
+            empty_card.body.addWidget(
+                create_button
+            )
+
+            self.notesLayout.addWidget(
+                empty_card,
+                0,
+                Qt.AlignmentFlag.AlignHCenter
+            )
+            self.notesLayout.addStretch(2)
 
         else:
 
             for note in notes:
 
-                card = NoteCard(note, self.open_note)
+                card = NoteCard(
+                    note,
+                    self.open_note
+                )
 
-                self.notesLayout.addWidget(card)
+                self.notesLayout.addWidget(
+                    card
+                )
 
-
-        self.notesLayout.addStretch()
+            self.notesLayout.addStretch(1)
 
 
 
