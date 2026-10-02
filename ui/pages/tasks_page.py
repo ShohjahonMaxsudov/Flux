@@ -248,7 +248,8 @@ class TasksPage(QWidget):
         body.addWidget(self.task_scroll, 1)
 
         self.side = QWidget()
-        self.side.setFixedWidth(330)
+        self.side.setMinimumWidth(314)
+        self.side.setMinimumHeight(620)
         side_layout = QVBoxLayout(self.side)
         side_layout.setContentsMargins(0, 0, 0, 0)
         side_layout.setSpacing(12)
@@ -302,7 +303,44 @@ class TasksPage(QWidget):
         self.detail_card.body.addLayout(self.detail_body)
         side_layout.addWidget(self.detail_card, 1)
 
-        body.addWidget(self.side)
+        self.side_scroll = QScrollArea()
+        self.side_scroll.setWidgetResizable(True)
+        self.side_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.side_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.side_scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.side_scroll.setFixedWidth(342)
+        self.side_scroll.setWidget(self.side)
+        self.side_scroll.setStyleSheet(
+            """
+            QScrollArea{
+                background:transparent;
+                border:none;
+            }
+            QScrollArea>QWidget>QWidget{
+                background:transparent;
+            }
+            QScrollBar:vertical{
+                width:5px;
+                background:transparent;
+                margin:0;
+            }
+            QScrollBar::handle:vertical{
+                background:rgba(120,145,185,0.28);
+                border-radius:2px;
+                min-height:30px;
+            }
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical{
+                height:0px;
+            }
+            """
+        )
+
+        body.addWidget(self.side_scroll)
         root.addLayout(body, 1)
 
         self.apply_theme()
