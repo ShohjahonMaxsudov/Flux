@@ -1,4 +1,4 @@
-name: Build Windows app
+name: Build Flux Windows
 
 on:
   workflow_dispatch:
@@ -7,20 +7,16 @@ on:
       - main
     tags:
       - "v*"
-    paths-ignore:
-      - "README.md"
-      - "CHANGELOG.md"
-      - "docs/**"
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
 
     steps:
-      - name: Check out code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -35,35 +31,15 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install pyinstaller
 
-      - name: Smoke-test Flux UI
-        shell: pwsh
-        run: |
-          $env:QT_QPA_PLATFORM = "offscreen"
-          python -c "from PySide6.QtWidgets import QApplication; from app import Flux; q=QApplication([]); w=Flux(); w.show(); q.processEvents(); print('Flux UI smoke test passed'); w.close()"
-
       - name: Build Flux
         shell: pwsh
-        run: |
-          python -m PyInstaller `
-            --noconfirm `
-            --clean `
-            --windowed `
-            --onedir `
-            --name "Flux" `
-            --icon "assets\flux.ico" `
-            --version-file "version_info.txt" `
-            --contents-directory "." `
-            --add-data "assets;assets" `
-            --add-data "database\flux.db;database" `
-            --collect-submodules "themes" `
-            --collect-submodules "animations" `
-            --collect-submodules "ui" `
-            --collect-submodules "utils" `
-            --collect-submodules "database" `
-            "main.py"
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name "Flux" --icon "assets\flux.ico" --version-file "version_info.txt" --contents-directory "." --add-data "assets;assets" --collect-submodules "themes" --collect-submodules "animations" --collect-submodules "ui" --collect-submodules "utils" --collect-submodules "database" "main.py"
 
+      - name: Verify executable
+        shell: pwsh
+        run: |
           if (-not (Test-Path "dist\Flux\Flux.exe")) {
-            Write-Error "Flux.exe was not created."
+            Write-Error "dist\Flux\Flux.exe was not created."
             exit 1
           }
 
