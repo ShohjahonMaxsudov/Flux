@@ -17,6 +17,7 @@ from ui.page_manager import PageManager
 
 from ui.pages.dashboard_page import DashboardPage
 from ui.pages.tasks_page import TasksPage
+from ui.pages.milestones_page import MilestonesPage
 from ui.pages.calendar_page import CalendarPage
 from ui.pages.statistics_page import StatisticsPage
 from ui.pages.settings_page import SettingsPage
@@ -175,6 +176,8 @@ class Flux(QMainWindow):
 
         self.tasksPage = TasksPage()
 
+        self.milestonesPage = MilestonesPage()
+
         self.calendarPage = CalendarPage()
 
         self.notesPage = NotesPage()
@@ -200,6 +203,12 @@ class Flux(QMainWindow):
         self.pages.add_page(
             "Tasks",
             self.tasksPage
+        )
+
+
+        self.pages.add_page(
+            "Milestones",
+            self.milestonesPage
         )
 
 
@@ -656,6 +665,8 @@ class Flux(QMainWindow):
 
         self.tasksPage.refresh_theme()
 
+        self.milestonesPage.refresh_theme()
+
         self.focusPage.refresh_theme()
 
         self.statisticsPage.refresh_theme()
@@ -681,6 +692,8 @@ class Flux(QMainWindow):
             "Dashboard": "Dashboard",
 
             "Tasks": "Tasks",
+
+            "Milestones": "Milestones",
 
             "Focus": "Focus",
 
