@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from themes.manager import ThemeManager
-from ui.design_system import AccentOrb, CheckButton, ClickableFrame, GradientButton, IconCircle, Metrics, SurfaceCard, clear_layout
+from ui.design_system import AccentOrb, CheckButton, ClickableFrame, GradientButton, HeaderPill, IconCircle, Metrics, SurfaceCard, clear_layout
 from ui.edit_task_dialog import EditTaskDialog
 from ui.icons import IconGlyph
 from utils.focus_manager import FocusManager
@@ -255,6 +255,8 @@ class TasksPage(QWidget):
 
         self.summary_card = SurfaceCard("Productivity Summary")
         self.summary_card.setMinimumHeight(242)
+        self.summary_period = HeaderPill("This Week")
+        self.summary_card.set_header_action(self.summary_period)
         self.completed_summary = self._summary_row("Completed Today", "check", "Today")
         self.upcoming_summary = self._summary_row("Upcoming Tasks", "calendar", "Next")
         self.focus_summary = self._summary_row("Focus Time", "chart", "This week")
@@ -577,6 +579,7 @@ class TasksPage(QWidget):
         c = ThemeManager.get().Colors
         for card in (self.summary_card, self.quick_card, self.detail_card):
             card.apply_theme()
+        self.summary_period.apply_theme()
         self.filter_icon.setColor(c.TEXT_SECONDARY)
         for item in (self.completed_summary, self.upcoming_summary, self.focus_summary):
             item["icon"].apply_theme()
