@@ -29,6 +29,12 @@ jobs:
         shell: pwsh
         run: python -m compileall -q .
 
+      - name: Run interaction smoke test
+        shell: pwsh
+        env:
+          FLUX_PREVIEW: "1"
+        run: python scripts/smoke_v3.py
+
       - name: Render Flux UI previews
         shell: pwsh
         env:
