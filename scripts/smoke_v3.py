@@ -18,6 +18,8 @@ from PySide6.QtWidgets import QApplication
 
 from app import Flux
 from themes.manager import ThemeManager
+from ui.add_task_dialog import AddTaskDialog
+from ui.edit_task_dialog import EditTaskDialog
 from utils.milestone_manager import MilestoneManager
 from utils.notes_manager import NotesManager
 from utils.settings_manager import SettingsManager
@@ -52,6 +54,20 @@ def main():
             app.processEvents()
         assert window.pages.currentWidget() is window.pages.pages[page]
 
+    add_dialog = AddTaskDialog()
+    created_signal = []
+    add_dialog.taskCreated.connect(
+        lambda *args: created_signal.append(args)
+    )
+    add_dialog.nameInput.setText("Dialog smoke task")
+    add_dialog.priorityInput.setCurrentText("High")
+    add_dialog.categoryInput.setCurrentText("Coding")
+    add_dialog.create_task()
+    assert created_signal
+    assert created_signal[0][0] == "Dialog smoke task"
+    assert created_signal[0][2] == "High"
+    assert created_signal[0][3] == "Coding"
+
     tasks_page = window.tasksPage
     tasks_page.quick_title.setText("Smoke test task")
     tasks_page.quick_date.setDate(QDate.currentDate())
@@ -65,6 +81,20 @@ def main():
     assert created is not None
     assert created.priority == "High"
     assert created.category == "Coding"
+
+    edit_dialog = EditTaskDialog(created)
+    updated_signal = []
+    edit_dialog.taskUpdated.connect(
+        lambda *args: updated_signal.append(args)
+    )
+    edit_dialog.nameInput.setText("Smoke task edited")
+    edit_dialog.priorityInput.setCurrentText("Low")
+    edit_dialog.save_task()
+    assert updated_signal
+    assert updated_signal[0][0] == created.id
+    assert updated_signal[0][1] == "Smoke task edited"
+    assert updated_signal[0][3] == "Low"
+
     task_manager.close()
 
     milestones_page = window.milestonesPage
@@ -110,6 +140,12 @@ def main():
 
     window.dashboardPage.dashboard.refresh_data()
     window.statisticsPage.refresh_stats()
+
+    window.change_page("Tasks")
+    for _ in range(4):
+        app.processEvents()
+    assert window.tasksPage.focus_summary["frame"].height() > 0
+    assert window.tasksPage.side_scroll.verticalScrollBar().maximum() >= 0
 
     for _ in range(8):
         app.processEvents()
