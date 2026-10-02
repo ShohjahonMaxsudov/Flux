@@ -1,6 +1,6 @@
 import os
 
-from PySide6.QtGui import QColor, QLinearGradient, QPainter
+from PySide6.QtGui import QColor, QLinearGradient, QPainter, QRadialGradient
 from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QMainWindow, QWidget
 
 from themes.manager import ThemeManager
@@ -77,6 +77,10 @@ class Flux(QMainWindow):
         outer.addWidget(self.shell, 1)
 
         self.toastHost = ToastHost(self.central)
+
+        self.dashboardPage.dashboard.navigateRequested.connect(
+            self.change_page
+        )
 
         if hasattr(self.settingsPage, "nameChanged"):
             self.settingsPage.nameChanged.connect(
@@ -163,9 +167,31 @@ class Flux(QMainWindow):
     def paintEvent(self, event):
         c = ThemeManager.get().Colors
         painter = QPainter(self)
-        gradient = QLinearGradient(0, 0, self.width(), self.height())
-        gradient.setColorAt(0.00, QColor("#1A2946"))
-        gradient.setColorAt(0.18, QColor(c.BACKGROUND))
-        gradient.setColorAt(0.78, QColor(c.BACKGROUND))
-        gradient.setColorAt(1.00, QColor("#152544"))
-        painter.fillRect(self.rect(), gradient)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+
+        base = QLinearGradient(0, 0, self.width(), self.height())
+        base.setColorAt(0.00, QColor("#12223D"))
+        base.setColorAt(0.22, QColor(c.BACKGROUND))
+        base.setColorAt(0.74, QColor(c.BACKGROUND))
+        base.setColorAt(1.00, QColor("#12213C"))
+        painter.fillRect(self.rect(), base)
+
+        left_glow = QRadialGradient(
+            self.width() * 0.04,
+            self.height() * 0.42,
+            self.width() * 0.34
+        )
+        left_glow.setColorAt(0.0, QColor(69, 107, 255, 88))
+        left_glow.setColorAt(0.45, QColor(60, 96, 230, 34))
+        left_glow.setColorAt(1.0, QColor(30, 50, 90, 0))
+        painter.fillRect(self.rect(), left_glow)
+
+        right_glow = QRadialGradient(
+            self.width() * 0.96,
+            self.height() * 0.86,
+            self.width() * 0.36
+        )
+        right_glow.setColorAt(0.0, QColor(66, 101, 238, 72))
+        right_glow.setColorAt(0.45, QColor(55, 83, 190, 28))
+        right_glow.setColorAt(1.0, QColor(20, 35, 65, 0))
+        painter.fillRect(self.rect(), right_glow)
