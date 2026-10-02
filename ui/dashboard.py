@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from themes.manager import ThemeManager
-from ui.design_system import AccentOrb, IconCircle, Metrics, SurfaceCard, clear_layout
+from ui.design_system import AccentOrb, HeaderLink, HeaderPill, IconCircle, Metrics, SurfaceCard, clear_layout
 from ui.icons import IconGlyph
 from utils.focus_manager import FocusManager
 from utils.habit_manager import HabitManager
@@ -288,6 +288,8 @@ class FocusTimerCard(SurfaceCard):
 
 
 class Dashboard(QWidget):
+    navigateRequested = Signal(str)
+
     def __init__(self):
         super().__init__()
 
@@ -356,12 +358,17 @@ class Dashboard(QWidget):
         grid.setColumnStretch(1, 10)
 
         self.week_card = SurfaceCard("Weekly Overview", "Tasks, habits and focus at a glance.")
-        self.week_card.setMinimumHeight(250)
+        self.week_card.setMinimumHeight(226)
+        self.week_details = HeaderLink("Details")
+        self.week_details.clicked.connect(lambda: self.navigateRequested.emit("Statistics"))
+        self.week_card.set_header_action(self.week_details)
         self.week_bars = WeeklyBars()
         self.week_card.body.addWidget(self.week_bars, 1)
 
         self.progress_card = SurfaceCard("Progress")
-        self.progress_card.setMinimumHeight(250)
+        self.progress_card.setMinimumHeight(226)
+        self.progress_period = HeaderPill("This Week")
+        self.progress_card.set_header_action(self.progress_period)
         progress_row = QHBoxLayout()
         progress_row.setSpacing(18)
         self.donut = Donut()
@@ -369,32 +376,42 @@ class Dashboard(QWidget):
 
         progress_metrics = QVBoxLayout()
         progress_metrics.setSpacing(13)
-        self.task_progress = self._progress_metric("Tasks")
-        self.habit_progress = self._progress_metric("Habits")
-        self.focus_progress = self._progress_metric("Focus")
+        self.task_progress = self._progress_metric("Tasks", "#4E9BFF")
+        self.habit_progress = self._progress_metric("Habits", "#A66CFF")
+        self.focus_progress = self._progress_metric("Focus", "#8FA8FF")
         for metric in (self.task_progress, self.habit_progress, self.focus_progress):
             progress_metrics.addLayout(metric["layout"])
         progress_row.addLayout(progress_metrics, 1)
         self.progress_card.body.addLayout(progress_row)
 
         self.focus_card = FocusTimerCard()
-        self.focus_card.setMinimumHeight(190)
+        self.focus_card.setMinimumHeight(172)
+        self.focus_open = HeaderLink("Open")
+        self.focus_open.clicked.connect(lambda: self.navigateRequested.emit("Focus"))
+        self.focus_card.set_header_action(self.focus_open)
         self.focus_card.completed.connect(self.refresh_data)
 
         self.habits_card = SurfaceCard("Habits")
-        self.habits_card.setMinimumHeight(190)
+        self.habits_card.setMinimumHeight(172)
+        self.habits_period = HeaderPill("This Week")
+        self.habits_card.set_header_action(self.habits_period)
         self.habit_rows = QVBoxLayout()
         self.habit_rows.setSpacing(6)
         self.habits_card.body.addLayout(self.habit_rows)
 
         self.recent_card = SurfaceCard("Recent Tasks")
-        self.recent_card.setMinimumHeight(215)
+        self.recent_card.setMinimumHeight(188)
+        self.recent_link = HeaderLink("View all")
+        self.recent_link.clicked.connect(lambda: self.navigateRequested.emit("Tasks"))
+        self.recent_card.set_header_action(self.recent_link)
         self.recent_rows = QVBoxLayout()
         self.recent_rows.setSpacing(0)
         self.recent_card.body.addLayout(self.recent_rows)
 
         self.stats_card = SurfaceCard("Quick Stats")
-        self.stats_card.setMinimumHeight(215)
+        self.stats_card.setMinimumHeight(188)
+        self.stats_period = HeaderPill("This Week")
+        self.stats_card.set_header_action(self.stats_period)
         self.stats_grid = QGridLayout()
         self.stats_grid.setSpacing(9)
         self.stat_widgets = []
@@ -425,14 +442,24 @@ class Dashboard(QWidget):
         self.apply_theme()
         self.refresh_data()
 
-    def _progress_metric(self, label):
+    def _progress_metric(self, label, accent):
         layout = QVBoxLayout()
         layout.setSpacing(4)
         top = QHBoxLayout()
+        top.setSpacing(7)
+
+        dot = QFrame()
+        dot.setFixedSize(8, 8)
+        dot.setStyleSheet(
+            f"background:{accent}; border:none; border-radius:4px;"
+        )
+
         title = QLabel(label)
         title.setObjectName("progressLabel")
         value = QLabel("0")
         value.setObjectName("progressValue")
+
+        top.addWidget(dot)
         top.addWidget(title)
         top.addStretch(1)
         top.addWidget(value)
@@ -442,10 +469,23 @@ class Dashboard(QWidget):
         bar.setRange(0, 100)
         bar.setTextVisible(False)
         bar.setFixedHeight(6)
+        bar.setStyleSheet(
+            f"""
+            QProgressBar#dashboardProgress {{
+                background:#202A39;
+                border:none;
+                border-radius:3px;
+            }}
+            QProgressBar#dashboardProgress::chunk {{
+                background:{accent};
+                border-radius:3px;
+            }}
+            """
+        )
 
         layout.addLayout(top)
         layout.addWidget(bar)
-        return {"layout": layout, "value": value, "bar": bar}
+        return {"layout": layout, "value": value, "bar": bar, "dot": dot}
 
     def _stat_tile(self, label, icon_name):
         frame = QFrame()
@@ -464,9 +504,14 @@ class Dashboard(QWidget):
         text.addWidget(value)
         text.addWidget(caption)
 
+        trend = QLabel("This week")
+        trend.setObjectName("statTrend")
+        trend.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
         row.addWidget(icon)
         row.addLayout(text, 1)
-        return {"frame": frame, "icon": icon, "value": value, "caption": caption}
+        row.addWidget(trend)
+        return {"frame": frame, "icon": icon, "value": value, "caption": caption, "trend": trend}
 
     def set_user_name(self, name):
         self.user_name = (name or "").strip()
@@ -656,11 +701,10 @@ class Dashboard(QWidget):
             }}
             QLabel#progressLabel {{ color:{c.TEXT}; background:transparent; border:none; font-size:11px; }}
             QLabel#progressValue {{ color:{c.TEXT}; background:transparent; border:none; font-size:11px; font-weight:700; }}
-            QProgressBar#dashboardProgress {{ background:#202A39; border:none; border-radius:3px; }}
-            QProgressBar#dashboardProgress::chunk {{ background:{c.PRIMARY_LIGHT}; border-radius:3px; }}
             QFrame#statTile {{ background:{c.SURFACE_ALT}; border:1px solid {c.BORDER}; border-radius:12px; }}
             QLabel#statValue {{ color:{c.TEXT}; background:transparent; border:none; font-size:19px; font-weight:800; }}
             QLabel#statCaption {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:9px; }}
+            QLabel#statTrend {{ color:{c.GREEN}; background:transparent; border:none; font-size:9px; }}
             QFrame#recentTask {{ background:transparent; border:none; border-bottom:1px solid rgba(130,155,190,0.10); }}
             QLabel#recentTitle {{ color:{c.TEXT}; background:transparent; border:none; font-size:11px; }}
             QLabel#recentTitleDone {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:11px; text-decoration:line-through; }}
