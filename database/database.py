@@ -175,6 +175,54 @@ class Database:
         """)
 
 
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS habits (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            name TEXT NOT NULL,
+
+            color TEXT DEFAULT '#5D9BFF',
+
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+        )
+        """)
+
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS habit_logs (
+
+            habit_id INTEGER NOT NULL,
+
+            day TEXT NOT NULL,
+
+            completed INTEGER NOT NULL DEFAULT 0,
+
+            PRIMARY KEY (habit_id, day)
+
+        )
+        """)
+
+
+        cursor.execute(
+            "SELECT COUNT(*) AS count FROM habits"
+        )
+
+        if cursor.fetchone()["count"] == 0:
+
+            cursor.executemany(
+                "INSERT INTO habits (name, color) VALUES (?, ?)",
+                [
+                    ("Read", "#5D9BFF"),
+                    ("Exercise", "#4BE8A5"),
+                    ("Journal", "#A56EFF"),
+                    ("No Social Media", "#FF8A5B"),
+                    ("8h Sleep", "#6EA8FF"),
+                ]
+            )
+
+
         self.connection.commit()
 
 
@@ -412,6 +460,83 @@ class Database:
                 "ALTER TABLE notes ADD COLUMN pin_hash TEXT"
             )
 
+
+        self.connection.commit()
+
+
+
+    # -------------------------
+    # HABITS
+    # -------------------------
+
+
+    def get_habits(self):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            "SELECT * FROM habits ORDER BY id ASC"
+        )
+
+        return cursor.fetchall()
+
+
+    def get_habit_day(
+        self,
+        habit_id,
+        day
+    ):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT completed
+            FROM habit_logs
+            WHERE habit_id = ? AND day = ?
+            """,
+            (
+                habit_id,
+                day
+            )
+        )
+
+        row = cursor.fetchone()
+
+        return bool(
+            row["completed"]
+            if row
+            else 0
+        )
+
+
+    def set_habit_day(
+        self,
+        habit_id,
+        day,
+        completed
+    ):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO habit_logs
+            (
+                habit_id,
+                day,
+                completed
+            )
+            VALUES (?, ?, ?)
+            ON CONFLICT(habit_id, day)
+            DO UPDATE SET completed = excluded.completed
+            """,
+            (
+                habit_id,
+                day,
+                1 if completed else 0
+            )
+        )
 
         self.connection.commit()
 
