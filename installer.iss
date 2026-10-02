@@ -1,6 +1,6 @@
 ; Flux Windows installer
 #define MyAppName "Flux"
-#define MyAppVersion "1.0.3"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Flux"
 #define MyAppExeName "Flux.exe"
 
@@ -27,8 +27,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
 
 [Files]
-Source: "dist\Flux\*"; DestDir: "{app}"; Excludes: "database\flux.db"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "dist\Flux\database\flux.db"; DestDir: "{app}\database"; Flags: ignoreversion onlyifdoesntexist
+Source: "dist\Flux\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Flux"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
