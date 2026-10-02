@@ -1,6 +1,9 @@
 name: Flux v3 Visual QA
 
 on:
+  push:
+    branches:
+      - flux-v3-rework
   workflow_dispatch:
 
 permissions:
