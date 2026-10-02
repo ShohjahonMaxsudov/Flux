@@ -18,6 +18,7 @@ from ui.add_task_dialog import AddTaskDialog
 from ui.edit_task_dialog import EditTaskDialog
 from utils.glass_effects import GlassFrame
 from themes.manager import ThemeManager
+from ui.design_system import Metrics
 
 
 class CalendarPage(QWidget):
@@ -40,9 +41,14 @@ class CalendarPage(QWidget):
 
         root = QVBoxLayout(self)
 
-        root.setContentsMargins(0, 0, 0, 0)
+        root.setContentsMargins(
+            Metrics.PAGE_X,
+            Metrics.PAGE_Y,
+            Metrics.PAGE_X,
+            Metrics.PAGE_Y
+        )
 
-        root.setSpacing(18)
+        root.setSpacing(16)
 
 
         headerRow = QHBoxLayout()
@@ -78,7 +84,7 @@ class CalendarPage(QWidget):
 
         splitRow = QHBoxLayout()
 
-        splitRow.setSpacing(18)
+        splitRow.setSpacing(14)
 
 
         self.card = GlassFrame()
@@ -175,12 +181,12 @@ class CalendarPage(QWidget):
 
 
         self.title.setStyleSheet(
-            f"color:{theme.Colors.TEXT}; font-size:32px; font-weight:800; background:transparent;"
+            f"color:{theme.Colors.TEXT}; font-size:28px; font-weight:800; background:transparent;"
         )
 
 
         self.subtitle.setStyleSheet(
-            f"color:{theme.Colors.TEXT_SECONDARY}; font-size:15px; background:transparent;"
+            f"color:{theme.Colors.TEXT_SECONDARY}; font-size:12px; background:transparent;"
         )
 
 
@@ -188,15 +194,21 @@ class CalendarPage(QWidget):
             f"""
             QPushButton{{
 
-                background:{theme.Colors.PRIMARY};
+                background:qlineargradient(
+                    x1:0,y1:0,x2:1,y2:0,
+                    stop:0 {theme.Colors.PRIMARY_LIGHT},
+                    stop:1 {theme.Colors.PRIMARY}
+                );
 
                 color:white;
 
-                border-radius:12px;
+                border:1px solid rgba(130,165,255,0.45);
 
-                padding:10px 18px;
+                border-radius:11px;
 
-                font-weight:bold;
+                padding:9px 18px;
+
+                font-weight:700;
 
             }}
 
@@ -215,9 +227,13 @@ class CalendarPage(QWidget):
                 f"""
                 QFrame#{frame.objectName()}{{
 
-                    background:{theme.Colors.GLASS};
+                    background:qlineargradient(
+                    x1:0,y1:0,x2:1,y2:1,
+                    stop:0 {theme.Colors.SURFACE_RAISED},
+                    stop:1 {theme.Colors.SURFACE}
+                );
 
-                    border-radius:20px;
+                    border-radius:16px;
 
                     border:1px solid {theme.Colors.BORDER};
 
@@ -227,7 +243,7 @@ class CalendarPage(QWidget):
 
 
         self.selectedLabel.setStyleSheet(
-            f"color:{theme.Colors.TEXT}; font-size:18px; font-weight:700; background:transparent; border:none;"
+            f"color:{theme.Colors.TEXT}; font-size:16px; font-weight:700; background:transparent; border:none;"
         )
 
 
