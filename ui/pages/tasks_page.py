@@ -33,7 +33,7 @@ class TasksPage(QWidget):
         self.current_filter = "All"
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(28, 22, 28, 24)
+        root.setContentsMargins(6, 4, 6, 6)
         root.setSpacing(16)
 
         header = QHBoxLayout()

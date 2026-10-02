@@ -333,7 +333,7 @@ class Dashboard(QWidget):
         self.user_name = self.settings_manager.get_user_name()
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(28, 22, 28, 24)
+        root.setContentsMargins(6, 4, 6, 6)
         root.setSpacing(18)
 
         header = QHBoxLayout()

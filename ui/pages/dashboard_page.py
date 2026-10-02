@@ -29,3 +29,7 @@ class DashboardPage(QWidget):
         layout.addWidget(
             self.dashboard
         )
+
+    def refresh_theme(self):
+
+        self.dashboard.refresh_theme()

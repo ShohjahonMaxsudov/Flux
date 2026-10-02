@@ -54,6 +54,7 @@ class Flux(QMainWindow):
         self.sidebar.filterChanged.connect(self.change_page)
 
         self.pages = PageManager()
+        self.pages.setContentsMargins(20, 18, 20, 18)
 
         self.dashboardPage = DashboardPage()
         self.tasksPage = TasksPage()
