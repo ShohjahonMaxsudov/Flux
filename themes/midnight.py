@@ -1,63 +1,67 @@
-"""
-Flux - Midnight Blue
-Premium default: deep ink surfaces with restrained electric-blue highlights.
-"""
+"""Flux v3 visual identity — one deliberate dark-blue system, not a recolor theme."""
+
 from dataclasses import dataclass
 from themes import base
 from themes.base import dark_family_stylesheet
 
-NAME = "Midnight Blue"
+NAME = "Flux Midnight"
 ICON = "moon"
-DESCRIPTION = "Deep midnight glass with crisp blue and cyan highlights."
-TAGLINE = "Calm. Sharp. Focused."
+DESCRIPTION = "Flux's permanent visual identity."
+TAGLINE = "Built for focus."
+
 
 @dataclass(frozen=True)
 class Colors:
-    BACKGROUND = "#070B12"
-    SECONDARY = "#0B1220"
-    SURFACE = "#0D1523"
-    SURFACE_ALT = "#121D2E"
-    GLASS = "rgba(95,150,255,0.060)"
-    GLASS_HOVER = "rgba(95,150,255,0.115)"
-    BORDER = "rgba(115,165,255,0.16)"
-    BORDER_ACTIVE = "#6EA8FF"
-    PRIMARY = "#5D9BFF"
-    GREEN = "#47E0B1"
-    PURPLE = "#8E7CFF"
-    ORANGE = "#FFBE63"
-    RED = "#FF6D7A"
-    TEXT = "#F5F8FF"
-    TEXT_SECONDARY = "#8C9AB3"
-    SUCCESS = "#47E0B1"
-    WARNING = "#FFBE63"
-    ERROR = "#FF6D7A"
+    BACKGROUND = "#080D14"
+    SECONDARY = "#0B121C"
+    SURFACE = "#0E1621"
+    SURFACE_ALT = "#121C29"
+    SURFACE_RAISED = "#162231"
+
+    GLASS = "rgba(32,48,70,0.62)"
+    GLASS_HOVER = "rgba(46,65,92,0.72)"
+
+    BORDER = "rgba(130,155,190,0.15)"
+    BORDER_ACTIVE = "#6A91FF"
+
+    PRIMARY = "#4F67F4"
+    PRIMARY_LIGHT = "#6D93FF"
+    BLUE_SOFT = "#73A8FF"
+    GREEN = "#5BD69A"
+    PURPLE = "#9A72F8"
+    ORANGE = "#FF894F"
+    YELLOW = "#F1C55E"
+    RED = "#FF6B7D"
+
+    TEXT = "#F4F7FC"
+    TEXT_SECONDARY = "#8F9DB1"
+    TEXT_TERTIARY = "#657389"
+
+    SUCCESS = GREEN
+    WARNING = YELLOW
+    ERROR = RED
+
 
 class Style(base.Style):
-    CARD_TINT = 0.13
+    CARD_TINT = 0.10
     ICON_STYLE = "ring"
     PILL_STYLE = "tint"
-    NAV_STYLE = "glass"
-    GLOW = 0.55
-    STAT_ACCENTS = ("PRIMARY", "GREEN", "PURPLE", "ORANGE")
+    NAV_STYLE = "solid"
+    GLOW = 0.22
+    STAT_ACCENTS = ("PRIMARY", "GREEN", "ORANGE", "PURPLE")
     PANEL_TINT = True
-    RIM = 0.72
+    RIM = 0.46
+
 
 class Atmosphere(base.Atmosphere):
-    KIND = "aurora"
-    BLOBS = (
-        (55, 125, 255, 48, 560, 0.14, 0.18, 0.08, 95, 58),
-        (35, 205, 220, 26, 470, 0.78, 0.88, 0.07, 105, 52),
-        (125, 105, 255, 26, 430, 0.90, 0.12, 0.10, 78, 68),
-    )
-    RIBBONS = (
-        (60, 145, 255, 38, 0.18, 0.04, 0.09, 0.20, 0.92, 0.1, -0.10),
-        (35, 220, 215, 24, 0.36, 0.05, 0.08, 0.15, 0.66, 2.0, -0.14),
-    )
-    PARTICLES = "stars"
-    PARTICLE_COUNT = 48
-    PARTICLE_ALPHA = 0.42
-    PARTICLE_COLOR = (220, 235, 255)
-    SHOOTING_STARS = True
-    BANNER = "mountains"
+    KIND = "none"
+    BLOBS = ()
+    RIBBONS = ()
+    PARTICLES = "none"
+    PARTICLE_COUNT = 0
+    PARTICLE_ALPHA = 0.0
+    SHOOTING_STARS = False
+    BANNER = "none"
+
 
 GLOBAL_STYLESHEET = dark_family_stylesheet(Colors)
