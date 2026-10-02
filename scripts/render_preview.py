@@ -13,6 +13,8 @@ os.environ["FLUX_DB_PATH"] = str((ROOT / "preview_flux.db").resolve())
 from PySide6.QtWidgets import QApplication
 
 from app import Flux
+from ui.add_task_dialog import AddTaskDialog
+from ui.edit_task_dialog import EditTaskDialog
 from utils.focus_manager import FocusManager
 from utils.habit_manager import HabitManager
 from utils.milestone_manager import MilestoneManager
@@ -119,6 +121,24 @@ def main():
         window.deleteLater()
         for _ in range(6):
             app.processEvents()
+
+    add_dialog = AddTaskDialog()
+    add_dialog.resize(600, 720)
+    render(add_dialog, "preview-add-task.png")
+    add_dialog.close()
+    add_dialog.deleteLater()
+
+    task_manager = TaskManager()
+    sample_task = task_manager.get_all_tasks()[0]
+    edit_dialog = EditTaskDialog(sample_task)
+    edit_dialog.resize(600, 720)
+    render(edit_dialog, "preview-edit-task.png")
+    edit_dialog.close()
+    edit_dialog.deleteLater()
+    task_manager.close()
+
+    for _ in range(6):
+        app.processEvents()
 
     app.quit()
 
