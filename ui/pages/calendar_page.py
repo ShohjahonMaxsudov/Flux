@@ -102,6 +102,10 @@ class CalendarPage(QWidget):
 
         self.calendar.setGridVisible(True)
 
+        self.calendar.setVerticalHeaderFormat(
+            QCalendarWidget.VerticalHeaderFormat.NoVerticalHeader
+        )
+
         self.calendar.setSelectedDate(QDate.currentDate())
 
         self.calendar.clicked.connect(self.date_selected)
