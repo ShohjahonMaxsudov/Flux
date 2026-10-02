@@ -789,6 +789,52 @@ def _alert(p, w, h, color):
     p.setBrush(Qt.NoBrush)
 
 
+
+
+def _chevron_down(p, w, h, color):
+
+    path = QPainterPath()
+
+    path.moveTo(w * 0.22, h * 0.36)
+
+    path.lineTo(w * 0.5, h * 0.64)
+
+    path.lineTo(w * 0.78, h * 0.36)
+
+    p.drawPath(path)
+
+
+def _filter(p, w, h, color):
+
+    p.drawLine(QPointF(w * 0.16, h * 0.28), QPointF(w * 0.84, h * 0.28))
+
+    p.drawLine(QPointF(w * 0.16, h * 0.50), QPointF(w * 0.84, h * 0.50))
+
+    p.drawLine(QPointF(w * 0.16, h * 0.72), QPointF(w * 0.84, h * 0.72))
+
+    p.setBrush(color)
+
+    p.drawEllipse(QPointF(w * 0.36, h * 0.28), w * 0.06, w * 0.06)
+
+    p.drawEllipse(QPointF(w * 0.64, h * 0.50), w * 0.06, w * 0.06)
+
+    p.drawEllipse(QPointF(w * 0.44, h * 0.72), w * 0.06, w * 0.06)
+
+    p.setBrush(Qt.NoBrush)
+
+
+def _search(p, w, h, color):
+
+    center = QPointF(w * 0.43, h * 0.43)
+
+    p.drawEllipse(center, w * 0.25, w * 0.25)
+
+    p.drawLine(
+        QPointF(w * 0.61, h * 0.61),
+        QPointF(w * 0.83, h * 0.83)
+    )
+
+
 _ICONS = {
 
     "home": _home,
@@ -868,5 +914,11 @@ _ICONS = {
     "bell": _bell,
 
     "alert": _alert,
+
+    "chevron_down": _chevron_down,
+
+    "filter": _filter,
+
+    "search": _search,
 
 }
