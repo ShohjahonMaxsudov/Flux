@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from themes.manager import ThemeManager
-from ui.design_system import AccentOrb, ClickableFrame, GradientButton, IconCircle, Metrics, SurfaceCard, clear_layout
+from ui.design_system import AccentOrb, CheckButton, ClickableFrame, GradientButton, IconCircle, Metrics, SurfaceCard, clear_layout
 from ui.edit_task_dialog import EditTaskDialog
 from ui.icons import IconGlyph
 from utils.focus_manager import FocusManager
@@ -43,15 +43,13 @@ class TaskRow(ClickableFrame):
         self.task = task
         self.setObjectName("taskRow")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFixedHeight(52)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 10, 10, 10)
         layout.setSpacing(10)
 
-        self.check = QPushButton("✓" if task.completed else "")
-        self.check.setObjectName("taskCheckDone" if task.completed else "taskCheck")
-        self.check.setFixedSize(24, 24)
-        self.check.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.check = CheckButton(task.completed, size=24)
         self.check.clicked.connect(lambda: self.toggleRequested.emit(task))
 
         self.title = QLabel(task.title)
@@ -132,18 +130,6 @@ class TaskRow(ClickableFrame):
             QFrame#taskRow:hover {{
                 background:{c.SURFACE_ALT};
                 border-color:rgba(115,150,220,0.30);
-            }}
-            QPushButton#taskCheck, QPushButton#taskCheckDone {{
-                background:transparent;
-                color:white;
-                border:1px solid #657994;
-                border-radius:12px;
-                font-size:10px;
-                font-weight:800;
-            }}
-            QPushButton#taskCheckDone {{
-                background:{c.PRIMARY};
-                border-color:{c.PRIMARY_LIGHT};
             }}
             QLabel#taskTitle {{ color:{c.TEXT}; background:transparent; border:none; font-size:11px; font-weight:600; }}
             QLabel#taskTitleDone {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:11px; text-decoration:line-through; }}
@@ -229,6 +215,18 @@ class TasksPage(QWidget):
         self.sort.currentTextChanged.connect(self.load_tasks)
         toolbar_layout.addWidget(self.sort)
 
+        self.filter_button = QPushButton()
+        self.filter_button.setObjectName("filterButton")
+        self.filter_button.setFixedSize(38, 34)
+        self.filter_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        filter_layout = QHBoxLayout(self.filter_button)
+        filter_layout.setContentsMargins(9, 7, 9, 7)
+        self.filter_icon = IconGlyph("filter", size=18)
+        self.filter_icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        filter_layout.addWidget(self.filter_icon)
+        self.filter_button.clicked.connect(self._cycle_filter)
+        toolbar_layout.addWidget(self.filter_button)
+
         root.addWidget(toolbar)
 
         body = QHBoxLayout()
@@ -256,6 +254,7 @@ class TasksPage(QWidget):
         side_layout.setSpacing(12)
 
         self.summary_card = SurfaceCard("Productivity Summary")
+        self.summary_card.setMinimumHeight(242)
         self.completed_summary = self._summary_row("Completed Today", "check", "Today")
         self.upcoming_summary = self._summary_row("Upcoming Tasks", "calendar", "Next")
         self.focus_summary = self._summary_row("Focus Time", "chart", "This week")
@@ -264,6 +263,7 @@ class TasksPage(QWidget):
         side_layout.addWidget(self.summary_card)
 
         self.quick_card = SurfaceCard("Quick Add Task")
+        self.quick_card.setMinimumHeight(182)
         self.quick_title = QLineEdit()
         self.quick_title.setObjectName("quickTitle")
         self.quick_title.setPlaceholderText("What do you want to get done?")
@@ -294,6 +294,7 @@ class TasksPage(QWidget):
         side_layout.addWidget(self.quick_card)
 
         self.detail_card = SurfaceCard("Task Details")
+        self.detail_card.setMinimumHeight(190)
         self.detail_body = QVBoxLayout()
         self.detail_body.setSpacing(9)
         self.detail_card.body.addLayout(self.detail_body)
@@ -309,6 +310,7 @@ class TasksPage(QWidget):
     def _summary_row(self, label, icon_name, micro):
         frame = QFrame()
         frame.setObjectName("summaryRow")
+        frame.setFixedHeight(58)
         row = QHBoxLayout(frame)
         row.setContentsMargins(12, 10, 12, 10)
         row.setSpacing(10)
@@ -329,6 +331,15 @@ class TasksPage(QWidget):
         row.addLayout(text, 1)
         row.addWidget(micro_label)
         return {"frame": frame, "value": value, "icon": icon}
+
+    def _cycle_filter(self):
+        order = ("All", "Today", "Upcoming", "Completed")
+        try:
+            index = order.index(self.current_filter)
+        except ValueError:
+            index = 0
+        self.set_filter(order[(index + 1) % len(order)])
+
 
     def set_filter(self, key):
         self.current_filter = key
@@ -416,8 +427,8 @@ class TasksPage(QWidget):
         layout.setSpacing(6)
 
         head = QHBoxLayout()
-        chevron = QLabel("⌄")
-        chevron.setObjectName("groupChevron")
+        chevron = IconGlyph("chevron_down", size=16)
+        chevron.setColor(ThemeManager.get().Colors.BLUE_SOFT)
         name = QLabel(title)
         name.setObjectName("groupTitle")
         count = QLabel(f"{len(tasks)} task" if len(tasks) == 1 else f"{len(tasks)} tasks")
@@ -427,6 +438,10 @@ class TasksPage(QWidget):
         head.addWidget(count)
         head.addStretch(1)
         layout.addLayout(head)
+
+        group_widget.setMinimumHeight(
+            28 + len(tasks) * 58
+        )
 
         for task in tasks:
             row = TaskRow(task)
@@ -562,6 +577,7 @@ class TasksPage(QWidget):
         c = ThemeManager.get().Colors
         for card in (self.summary_card, self.quick_card, self.detail_card):
             card.apply_theme()
+        self.filter_icon.setColor(c.TEXT_SECONDARY)
         for item in (self.completed_summary, self.upcoming_summary, self.focus_summary):
             item["icon"].apply_theme()
         self.quick_button.apply_theme()
@@ -577,10 +593,11 @@ class TasksPage(QWidget):
             QLineEdit#tasksSearch {{ border-radius:16px; padding:9px 14px; font-size:11px; }}
             QLineEdit#tasksSearch:focus, QLineEdit#quickTitle:focus, QComboBox#tasksSort:focus, QComboBox#quickInput:focus, QDateEdit#quickInput:focus {{ border-color:{c.BORDER_ACTIVE}; }}
             QFrame#tasksToolbar {{ background:{c.SURFACE}; border:1px solid {c.BORDER}; border-radius:13px; }}
+            QPushButton#filterButton {{ background:{c.SURFACE_ALT}; border:1px solid {c.BORDER}; border-radius:9px; }}
+            QPushButton#filterButton:hover {{ border-color:{c.BORDER_ACTIVE}; background:rgba(80,105,155,0.16); }}
             QPushButton#taskTab {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; border-radius:9px; padding:8px 22px; font-size:10px; }}
             QPushButton#taskTab:hover {{ color:{c.TEXT}; background:rgba(80,105,155,0.12); }}
             QPushButton#taskTab[active="true"] {{ color:white; background:{c.PRIMARY}; font-weight:700; }}
-            QLabel#groupChevron {{ color:{c.BLUE_SOFT}; background:transparent; border:none; font-size:16px; }}
             QLabel#groupTitle {{ color:{c.TEXT}; background:transparent; border:none; font-size:17px; font-weight:800; }}
             QLabel#groupCount {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:10px; }}
             QFrame#summaryRow {{ background:{c.SURFACE_ALT}; border:1px solid {c.BORDER}; border-radius:11px; }}
