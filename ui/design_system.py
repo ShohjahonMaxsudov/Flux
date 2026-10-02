@@ -51,7 +51,7 @@ class SurfaceCard(QFrame):
 
             self.body.addLayout(header)
 
-        self.apply_theme()
+        SurfaceCard.apply_theme(self)
 
     def apply_theme(self):
         c = ThemeManager.get().Colors
