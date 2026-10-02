@@ -39,9 +39,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Flux-v3-previews
-          path: |
-            preview-dashboard.png
-            preview-tasks.png
-            preview-milestones.png
+          path: preview-*.png
           if-no-files-found: error
           retention-days: 7
