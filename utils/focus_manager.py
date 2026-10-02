@@ -82,6 +82,37 @@ class FocusManager:
         )
 
 
+    def get_today_sessions(self):
+
+        today = datetime.now().date()
+
+        return sum(
+            1
+            for day, _minutes in self._rows_since(1)
+            if day == today
+        )
+
+
+    def get_week_by_day(self):
+
+        monday = (
+            datetime.now()
+            - timedelta(days=datetime.now().weekday())
+        ).date()
+
+        totals = [0] * 7
+
+        for day, minutes in self._rows_since(7):
+
+            offset = (day - monday).days
+
+            if 0 <= offset < 7:
+
+                totals[offset] += int(minutes or 0)
+
+        return totals
+
+
     def close(self):
 
         self.database.close()
