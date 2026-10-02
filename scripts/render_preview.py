@@ -7,7 +7,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ["FLUX_PREVIEW"] = "1"
 os.environ["FLUX_DB_PATH"] = str((ROOT / "preview_flux.db").resolve())
 
@@ -71,8 +70,10 @@ def seed_demo_data():
 def render(window, name):
     app = QApplication.instance()
     window.show()
+    window.raise_()
+    window.activateWindow()
 
-    for _ in range(8):
+    for _ in range(20):
         app.processEvents()
 
     pixmap = window.grab()
@@ -88,19 +89,21 @@ def main():
     seed_demo_data()
 
     app = QApplication([])
-    window = Flux()
-    window.resize(1480, 900)
 
-    window.change_page("Dashboard")
-    render(window, "preview-dashboard.png")
+    for page, filename in (
+        ("Dashboard", "preview-dashboard.png"),
+        ("Tasks", "preview-tasks.png"),
+        ("Milestones", "preview-milestones.png"),
+    ):
+        window = Flux()
+        window.resize(1480, 900)
+        window.change_page(page)
+        render(window, filename)
+        window.close()
+        window.deleteLater()
+        for _ in range(6):
+            app.processEvents()
 
-    window.change_page("Tasks")
-    render(window, "preview-tasks.png")
-
-    window.change_page("Milestones")
-    render(window, "preview-milestones.png")
-
-    window.close()
     app.quit()
 
 
