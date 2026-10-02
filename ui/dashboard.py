@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from themes.manager import ThemeManager
-from ui.design_system import AccentOrb, HeaderLink, HeaderPill, IconCircle, Metrics, SurfaceCard, clear_layout
+from ui.design_system import AccentOrb, CheckButton, HeaderLink, HeaderPill, IconCircle, Metrics, SurfaceCard, clear_layout
 from ui.icons import IconGlyph
 from utils.focus_manager import FocusManager
 from utils.habit_manager import HabitManager
@@ -582,10 +582,7 @@ class Dashboard(QWidget):
             layout.setContentsMargins(2, 7, 2, 7)
             layout.setSpacing(10)
 
-            check = QPushButton("✓" if task.completed else "")
-            check.setObjectName("recentCheckDone" if task.completed else "recentCheck")
-            check.setFixedSize(22, 22)
-            check.setCursor(Qt.CursorShape.PointingHandCursor)
+            check = CheckButton(task.completed, size=22)
             check.clicked.connect(lambda _checked=False, t=task: self._toggle_task(t))
 
             title = QLabel(task.title)
@@ -657,10 +654,7 @@ class Dashboard(QWidget):
             row.addWidget(name)
 
             for day_iso, checked in habit["week"]:
-                cell = QPushButton("✓" if checked else "")
-                cell.setObjectName("habitCellOn" if checked else "habitCell")
-                cell.setFixedSize(27, 27)
-                cell.setCursor(Qt.CursorShape.PointingHandCursor)
+                cell = CheckButton(checked, size=27, square=True)
                 cell.clicked.connect(
                     lambda _checked=False, hid=habit["id"], day=day_iso: self._toggle_habit(hid, day)
                 )
@@ -708,15 +702,7 @@ class Dashboard(QWidget):
             QFrame#recentTask {{ background:transparent; border:none; border-bottom:1px solid rgba(130,155,190,0.10); }}
             QLabel#recentTitle {{ color:{c.TEXT}; background:transparent; border:none; font-size:11px; }}
             QLabel#recentTitleDone {{ color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:11px; text-decoration:line-through; }}
-            QPushButton#recentCheck, QPushButton#recentCheckDone {{
-                background:transparent; color:white; border:1px solid #6C7C94; border-radius:11px; font-size:10px; font-weight:700;
-            }}
-            QPushButton#recentCheckDone {{ background:{c.PRIMARY}; border-color:{c.PRIMARY_LIGHT}; }}
             QLabel#habitName {{ color:{c.TEXT}; background:transparent; border:none; font-size:10px; }}
-            QPushButton#habitCell, QPushButton#habitCellOn {{
-                background:#111A26; color:white; border:1px solid #314056; border-radius:5px; font-size:9px; font-weight:800;
-            }}
-            QPushButton#habitCellOn {{ background:{c.PRIMARY}; border-color:{c.PRIMARY_LIGHT}; }}
             """
         )
 
