@@ -36,22 +36,53 @@ class SurfaceCard(QFrame):
         self.title_label = None
         self.subtitle_label = None
 
+        self.header_row = None
+        self.header_action = None
+
         if title:
-            header = QVBoxLayout()
-            header.setSpacing(2)
+            self.header_row = QHBoxLayout()
+            self.header_row.setSpacing(10)
+
+            titles = QVBoxLayout()
+            titles.setSpacing(2)
 
             self.title_label = QLabel(title)
             self.title_label.setObjectName("surfaceTitle")
-            header.addWidget(self.title_label)
+            titles.addWidget(self.title_label)
 
             if subtitle:
                 self.subtitle_label = QLabel(subtitle)
                 self.subtitle_label.setObjectName("surfaceSubtitle")
-                header.addWidget(self.subtitle_label)
+                titles.addWidget(self.subtitle_label)
 
-            self.body.addLayout(header)
+            self.header_row.addLayout(titles, 1)
+
+            self.header_action = QHBoxLayout()
+            self.header_action.setContentsMargins(0, 0, 0, 0)
+            self.header_action.setSpacing(6)
+            self.header_row.addLayout(self.header_action)
+
+            self.body.addLayout(self.header_row)
 
         SurfaceCard.apply_theme(self)
+
+    def set_header_action(self, widget):
+        if self.header_action is None:
+            return
+
+        while self.header_action.count():
+            item = self.header_action.takeAt(0)
+            old = item.widget()
+            if old:
+                old.hide()
+                old.setParent(None)
+                old.deleteLater()
+
+        self.header_action.addWidget(
+            widget,
+            0,
+            Qt.AlignmentFlag.AlignTop
+        )
 
     def apply_theme(self):
         c = ThemeManager.get().Colors
@@ -75,6 +106,73 @@ class SurfaceCard(QFrame):
                 border:none;
                 font-size:11px;
             }}
+            """
+        )
+
+
+class HeaderPill(QPushButton):
+    def __init__(self, text, parent=None):
+        super().__init__(text, parent)
+        self.setObjectName("headerPill")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFixedHeight(30)
+        self.apply_theme()
+
+    def apply_theme(self):
+        c = ThemeManager.get().Colors
+        self.setStyleSheet(
+            f"""
+            QPushButton#headerPill {{
+                color:{c.TEXT};
+                background:rgba(40,54,76,0.72);
+                border:1px solid {c.BORDER};
+                border-radius:9px;
+                padding:5px 11px;
+                font-size:10px;
+            }}
+            QPushButton#headerPill:hover {{
+                background:{c.SURFACE_ALT};
+                border-color:rgba(115,150,220,0.36);
+            }}
+            """
+        )
+
+
+class HeaderLink(QPushButton):
+    def __init__(self, text, parent=None):
+        super().__init__(parent)
+        self.setObjectName("headerLink")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFixedHeight(28)
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(7, 0, 5, 0)
+        row.setSpacing(5)
+
+        self.label = QLabel(text)
+        self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.icon = IconGlyph("arrow_right", size=13)
+        self.icon.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        row.addWidget(self.label)
+        row.addWidget(self.icon)
+        self.apply_theme()
+
+    def apply_theme(self):
+        c = ThemeManager.get().Colors
+        self.icon.setColor(c.TEXT_SECONDARY)
+        self.label.setStyleSheet(
+            f"color:{c.TEXT_SECONDARY}; background:transparent; border:none; font-size:10px;"
+        )
+        self.setStyleSheet(
+            """
+            QPushButton#headerLink {
+                background:transparent;
+                border:none;
+                border-radius:7px;
+            }
+            QPushButton#headerLink:hover {
+                background:rgba(100,125,170,0.10);
+            }
             """
         )
 
