@@ -1,10 +1,15 @@
 import os
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+os.chdir(ROOT)
+
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ["FLUX_PREVIEW"] = "1"
-os.environ["FLUX_DB_PATH"] = str(Path("preview_flux.db").resolve())
+os.environ["FLUX_DB_PATH"] = str((ROOT / "preview_flux.db").resolve())
 
 from PySide6.QtWidgets import QApplication
 
