@@ -1,4 +1,7 @@
 import sqlite3
+import os
+import shutil
+import sys
 from pathlib import Path
 from datetime import datetime
 
@@ -9,9 +12,44 @@ class Database:
 
     def __init__(self):
 
-        self.db_path = (
-            Path(__file__).parent / "flux.db"
-        )
+        project_db = Path(__file__).parent / "flux.db"
+
+        if getattr(sys, "frozen", False) and os.name == "nt":
+
+            data_root = Path(
+                os.environ.get("LOCALAPPDATA")
+                or (Path.home() / "AppData" / "Local")
+            ) / "Flux"
+
+            data_root.mkdir(
+                parents=True,
+                exist_ok=True
+            )
+
+            self.db_path = data_root / "flux.db"
+
+            legacy_db = (
+                Path(sys.executable).resolve().parent
+                / "database"
+                / "flux.db"
+            )
+
+            if (
+                not self.db_path.exists()
+                and legacy_db.exists()
+            ):
+
+                try:
+                    shutil.copy2(
+                        legacy_db,
+                        self.db_path
+                    )
+                except OSError:
+                    pass
+
+        else:
+
+            self.db_path = project_db
 
         self.connection = None
 
@@ -111,6 +149,27 @@ class Database:
             key TEXT PRIMARY KEY,
 
             value TEXT
+
+        )
+        """)
+
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS milestones (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            title TEXT NOT NULL,
+
+            target INTEGER NOT NULL DEFAULT 100,
+
+            progress INTEGER NOT NULL DEFAULT 0,
+
+            due_date TEXT DEFAULT '',
+
+            color TEXT DEFAULT '#5A7DFF',
+
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
         )
         """)
@@ -353,6 +412,130 @@ class Database:
                 "ALTER TABLE notes ADD COLUMN pin_hash TEXT"
             )
 
+
+        self.connection.commit()
+
+
+
+    # -------------------------
+    # MILESTONES
+    # -------------------------
+
+
+    def add_milestone(
+        self,
+        title,
+        target=100,
+        due_date="",
+        color="#5A7DFF"
+    ):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO milestones
+            (
+                title,
+                target,
+                progress,
+                due_date,
+                color
+            )
+            VALUES (?, ?, 0, ?, ?)
+            """,
+            (
+                title,
+                max(1, int(target)),
+                due_date,
+                color
+            )
+        )
+
+        self.connection.commit()
+
+        return cursor.lastrowid
+
+
+    def get_milestones(self):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT *
+            FROM milestones
+            ORDER BY
+                CASE
+                    WHEN progress >= target THEN 1
+                    ELSE 0
+                END,
+                created_at DESC
+            """
+        )
+
+        return cursor.fetchall()
+
+
+    def update_milestone_progress(
+        self,
+        milestone_id,
+        progress
+    ):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT target
+            FROM milestones
+            WHERE id = ?
+            """,
+            (milestone_id,)
+        )
+
+        row = cursor.fetchone()
+
+        if not row:
+            return
+
+        value = max(
+            0,
+            min(
+                int(row["target"]),
+                int(progress)
+            )
+        )
+
+        cursor.execute(
+            """
+            UPDATE milestones
+            SET progress = ?
+            WHERE id = ?
+            """,
+            (
+                value,
+                milestone_id
+            )
+        )
+
+        self.connection.commit()
+
+
+    def delete_milestone(
+        self,
+        milestone_id
+    ):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM milestones
+            WHERE id = ?
+            """,
+            (milestone_id,)
+        )
 
         self.connection.commit()
 
