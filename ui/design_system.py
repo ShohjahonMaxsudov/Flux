@@ -195,6 +195,8 @@ def clear_layout(layout, keep_stretch=False):
         widget = item.widget()
         child_layout = item.layout()
         if widget:
+            widget.hide()
+            widget.setParent(None)
             widget.deleteLater()
         elif child_layout:
             clear_layout(child_layout)
