@@ -1,4 +1,5 @@
 import random
+import time
 import math
 
 from PySide6.QtCore import Qt, QTimer, QRectF, QPointF
@@ -170,6 +171,8 @@ class SakuraBackground(QWidget):
 
         self._initialized = False
 
+        self._last_tick = None
+
         self._atmosphere = QPixmap()
 
         self._atmosphere_size = None
@@ -179,12 +182,12 @@ class SakuraBackground(QWidget):
         self.timer.timeout.connect(self._tick)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
 
-        self.timer.start(self.FRAME_MS)
-
 
     def start(self):
 
         if not self.timer.isActive():
+
+            self._last_tick = time.perf_counter()
 
             self.timer.start(self.FRAME_MS)
 
@@ -192,6 +195,8 @@ class SakuraBackground(QWidget):
     def stop(self):
 
         self.timer.stop()
+
+        self._last_tick = None
 
 
     def _init_petals(self):
@@ -224,7 +229,23 @@ class SakuraBackground(QWidget):
 
             self._init_petals()
 
-        step = self.FRAME_MS / 30.0
+        now = time.perf_counter()
+
+        dt = (
+            self.FRAME_MS / 1000.0
+            if self._last_tick is None
+            else max(
+                0.001,
+                min(
+                    0.050,
+                    now - self._last_tick
+                )
+            )
+        )
+
+        self._last_tick = now
+
+        step = dt * 30.0
 
         for petal in self.petals:
 
