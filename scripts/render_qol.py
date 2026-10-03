@@ -73,8 +73,6 @@ def main():
     window.close()
     app.quit()
 
-    if preview_db.exists():
-        preview_db.unlink()
 
 
 if __name__ == "__main__":
