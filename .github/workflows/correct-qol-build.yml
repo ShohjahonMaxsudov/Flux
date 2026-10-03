@@ -1,0 +1,100 @@
+name: Build Correct Flux QOL Habits
+
+on:
+  push:
+    branches:
+      - flux-qol-sidebar-habits
+    paths:
+      - ".github/workflows/correct-qol-build.yml"
+      - "app.py"
+      - "main.py"
+      - "ui/**"
+      - "utils/**"
+      - "database/**"
+      - "animations/**"
+      - "themes/**"
+      - "assets/**"
+      - "requirements.txt"
+      - "installer.iss"
+      - "version_info.txt"
+      - "scripts/smoke_sidebar_qol.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flux-correct-qol-habits-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Syntax
+        shell: pwsh
+        run: python -m compileall -q app.py animations database themes ui utils scripts
+
+      - name: Smoke
+        shell: pwsh
+        run: python scripts/smoke_sidebar_qol.py
+
+      - name: Build Flux
+        shell: pwsh
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name "Flux" --icon "assets\flux.ico" --version-file "version_info.txt" --contents-directory "." --add-data "assets;assets" --add-data "database\flux.db;database" --collect-submodules "themes" --collect-submodules "animations" --collect-submodules "ui" --collect-submodules "utils" --collect-submodules "database" "main.py"
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist\Flux\Flux.exe")) {
+            Write-Error "Flux.exe was not created."
+            exit 1
+          }
+
+      - name: Portable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path dist/Flux/* -DestinationPath Flux-QOL-Habits-Portable.zip -Force
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+          }
+          & $iscc "installer.iss"
+          if (-not (Test-Path "release\FluxSetup.exe")) {
+            Write-Error "FluxSetup.exe was not created."
+            exit 1
+          }
+          Copy-Item "release\FluxSetup.exe" "Flux-QOL-Habits-Setup.exe" -Force
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flux-QOL-Habits-Windows
+          path: |
+            Flux-QOL-Habits-Portable.zip
+            Flux-QOL-Habits-Setup.exe
+          if-no-files-found: error
+          retention-days: 30
