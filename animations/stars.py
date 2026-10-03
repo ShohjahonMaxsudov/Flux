@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import random
+import time
 from dataclasses import dataclass
 
 from PySide6.QtCore import QPointF, QTimer, Qt
@@ -105,6 +106,8 @@ class StarField(QWidget):
 
         self._time = 0.0
 
+        self._last_tick = None
+
         self.mode = "stars"
 
         self.alpha_scale = 1.0
@@ -126,7 +129,6 @@ class StarField(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._tick)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
-        self.timer.start(self.FRAME_MS)
 
 
     def configure(self, atmosphere):
@@ -159,12 +161,16 @@ class StarField(QWidget):
 
         if not self.timer.isActive():
 
+            self._last_tick = time.perf_counter()
+
             self.timer.start(self.FRAME_MS)
 
 
     def stop(self):
 
         self.timer.stop()
+
+        self._last_tick = None
 
     # -----------------------------------------------------
 
@@ -228,8 +234,26 @@ class StarField(QWidget):
     # -----------------------------------------------------
 
     def _tick(self):
-        self._time += self.FRAME_MS / 1000.0
-        step = self.FRAME_MS / 33.0
+
+        now = time.perf_counter()
+
+        dt = (
+            self.FRAME_MS / 1000.0
+            if self._last_tick is None
+            else max(
+                0.001,
+                min(
+                    0.050,
+                    now - self._last_tick
+                )
+            )
+        )
+
+        self._last_tick = now
+
+        self._time += dt
+
+        step = dt * 30.0
 
         if self.mode in ("bubbles", "embers", "snow"):
 
