@@ -51,6 +51,22 @@ def main():
 
     assert window.pages.currentWidget() is window.habitsPage
 
+    window.sidebar.changeFilter("Calendar")
+    for _ in range(5):
+        app.processEvents()
+
+    assert window.pages.currentWidget() is window.calendarPage
+    assert window.calendarPage.calendar.selectedDate().isValid()
+
+    today = window.calendarPage.calendar.selectedDate()
+    window.calendarPage.calendar.next_month()
+    assert (
+        window.calendarPage.calendar._month != today.month()
+        or window.calendarPage.calendar._year != today.year()
+    )
+    window.calendarPage.calendar.go_today()
+    assert window.calendarPage.calendar.selectedDate() == today
+
     active = [
         widget.timer.isActive()
         for widget in (
