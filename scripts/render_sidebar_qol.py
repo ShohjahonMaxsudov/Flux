@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,7 @@ from PySide6.QtWidgets import QApplication
 from app import Flux
 from utils.habit_manager import HabitManager
 from utils.settings_manager import SettingsManager
+from utils.task_manager import TaskManager
 
 
 def main():
@@ -57,21 +59,57 @@ def main():
 
     manager.close()
 
+    tasks = TaskManager()
+    today = datetime.now().date()
+
+    samples = [
+        ("Finish Flux polish", 0, "High", "Coding", False),
+        ("Review notes", 0, "Normal", "Study", True),
+        ("Gym session", 1, "Normal", "Health", False),
+        ("Prepare presentation", 3, "High", "Work", False),
+        ("Read chapter", -2, "Low", "Personal", True),
+    ]
+
+    for title, offset, priority, category, completed in samples:
+        task_id = tasks.create_task(
+            title=title,
+            task_date=(today + timedelta(days=offset)).strftime("%Y-%m-%d"),
+            priority=priority,
+            category=category,
+        )
+        if completed:
+            tasks.complete_task(task_id, True)
+
+    tasks.close()
+
     window = Flux()
     window.resize(1450, 900)
     window.show()
+
     window.change_page("Habits")
     window.sidebar.changeFilter("Habits")
 
     for _ in range(25):
         app.processEvents()
 
-    output = ROOT / "preview-qol-sidebar-habits.png"
+    habits_output = ROOT / "preview-qol-sidebar-habits.png"
 
-    if not window.grab().save(str(output)):
+    if not window.grab().save(str(habits_output)):
         raise RuntimeError("Could not save QOL Habits preview")
 
-    print(f"saved {output}")
+    window.change_page("Calendar")
+    window.sidebar.changeFilter("Calendar")
+
+    for _ in range(25):
+        app.processEvents()
+
+    calendar_output = ROOT / "preview-qol-calendar.png"
+
+    if not window.grab().save(str(calendar_output)):
+        raise RuntimeError("Could not save QOL Calendar preview")
+
+    print(f"saved {habits_output}")
+    print(f"saved {calendar_output}")
 
     window.hide()
     window.close()
