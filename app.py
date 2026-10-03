@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QApplication,
 )
 
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QEvent
 from PySide6.QtGui import QPainter, QColor, QLinearGradient
 
 
@@ -17,6 +17,7 @@ from ui.page_manager import PageManager
 
 from ui.pages.dashboard_page import DashboardPage
 from ui.pages.tasks_page import TasksPage
+from ui.pages.habits_page import HabitsPage
 from ui.pages.calendar_page import CalendarPage
 from ui.pages.statistics_page import StatisticsPage
 from ui.pages.settings_page import SettingsPage
@@ -183,6 +184,8 @@ class Flux(QMainWindow):
 
         self.tasksPage = TasksPage()
 
+        self.habitsPage = HabitsPage()
+
         self.calendarPage = CalendarPage()
 
         self.notesPage = NotesPage()
@@ -208,6 +211,12 @@ class Flux(QMainWindow):
         self.pages.add_page(
             "Tasks",
             self.tasksPage
+        )
+
+
+        self.pages.add_page(
+            "Habits",
+            self.habitsPage
         )
 
 
@@ -288,6 +297,15 @@ class Flux(QMainWindow):
 
 
         self.apply_background_theme()
+
+
+        app = QApplication.instance()
+
+        if app is not None:
+
+            app.applicationStateChanged.connect(
+                self._on_application_state_changed
+            )
 
 
         # Snapshot the old look right before the switch so on_theme_changed
@@ -390,6 +408,14 @@ class Flux(QMainWindow):
 
         kind = atmosphere.KIND
 
+        animations_allowed = (
+            not self.reduce_motion
+            and self.isVisible()
+            and not self.isMinimized()
+            and QApplication.applicationState()
+            == Qt.ApplicationState.ApplicationActive
+        )
+
         scenes = {
             "sakura": self.sakura,
             "astro": self.astro,
@@ -402,7 +428,13 @@ class Flux(QMainWindow):
 
                 scene.show()
 
-                scene.start()
+                if animations_allowed:
+
+                    scene.start()
+
+                else:
+
+                    scene.stop()
 
                 scene.lower()
 
@@ -418,7 +450,13 @@ class Flux(QMainWindow):
 
             self.aurora.show()
 
-            self.aurora.start()
+            if animations_allowed:
+
+                self.aurora.start()
+
+            else:
+
+                self.aurora.stop()
 
             self.aurora.lower()
 
@@ -442,7 +480,13 @@ class Flux(QMainWindow):
 
             self.stars.show()
 
-            self.stars.start()
+            if animations_allowed:
+
+                self.stars.start()
+
+            else:
+
+                self.stars.stop()
 
             self.stars.raise_()
 
@@ -622,6 +666,8 @@ class Flux(QMainWindow):
 
         self.tasksPage.refresh_theme()
 
+        self.habitsPage.refresh_theme()
+
         self.focusPage.refresh_theme()
 
         self.statisticsPage.refresh_theme()
@@ -648,6 +694,8 @@ class Flux(QMainWindow):
 
             "Tasks": "Tasks",
 
+            "Habits": "Habits",
+
             "Focus": "Focus",
 
             "Calendar": "Calendar",
@@ -667,6 +715,79 @@ class Flux(QMainWindow):
                 mapping[name]
             )
 
+
+
+    def _stop_background_animations(self):
+
+        for widget in (
+            self.aurora,
+            self.stars,
+            self.sakura,
+            self.astro,
+            self.synthwave,
+        ):
+
+            widget.stop()
+
+
+    def _sync_animation_activity(self):
+
+        if (
+            self.reduce_motion
+            or not self.isVisible()
+            or self.isMinimized()
+            or QApplication.applicationState()
+            != Qt.ApplicationState.ApplicationActive
+        ):
+
+            self._stop_background_animations()
+
+            return
+
+        self.apply_background_theme()
+
+
+    def _on_application_state_changed(self, _state):
+
+        QTimer.singleShot(
+            0,
+            self._sync_animation_activity
+        )
+
+
+    def showEvent(self, event):
+
+        super().showEvent(
+            event
+        )
+
+        QTimer.singleShot(
+            0,
+            self._sync_animation_activity
+        )
+
+
+    def hideEvent(self, event):
+
+        self._stop_background_animations()
+
+        super().hideEvent(
+            event
+        )
+
+
+    def changeEvent(self, event):
+
+        super().changeEvent(
+            event
+        )
+
+        if event.type() == QEvent.Type.WindowStateChange:
+
+            QTimer.singleShot(
+                0,
+                self._sync_animation_activity
+            )
 
 
     def resizeEvent(
