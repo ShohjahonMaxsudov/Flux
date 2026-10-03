@@ -38,9 +38,16 @@ class CalendarDayButton(QPushButton):
             Qt.CursorShape.PointingHandCursor
         )
 
-        self.setMinimumSize(
-            56,
+        self.setMinimumWidth(
+            52
+        )
+
+        self.setMinimumHeight(
             50
+        )
+
+        self.setMaximumHeight(
+            56
         )
 
         self.clicked.connect(
@@ -453,7 +460,10 @@ class FluxCalendarWidget(QWidget):
             )
 
         root.addLayout(
-            self.grid,
+            self.grid
+        )
+
+        root.addStretch(
             1
         )
 
@@ -798,7 +808,7 @@ class CalendarPage(QWidget):
 
         split_row.addWidget(
             self.card,
-            3
+            5
         )
 
 
@@ -870,6 +880,10 @@ class CalendarPage(QWidget):
             QFrame.Shape.NoFrame
         )
 
+        self.day_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+
         self.day_scroll.setStyleSheet(
             "QScrollArea{background:transparent;border:none;}"
             "QScrollArea>QWidget>QWidget{background:transparent;}"
@@ -909,7 +923,7 @@ class CalendarPage(QWidget):
 
         split_row.addWidget(
             self.day_panel,
-            2
+            4
         )
 
 
