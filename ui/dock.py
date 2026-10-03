@@ -172,7 +172,7 @@ class FloatingDock(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setFixedSize(608, 86)
+        self.setFixedSize(686, 86)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         self._active_key = "Dashboard"
@@ -192,6 +192,7 @@ class FloatingDock(QFrame):
         items = [
             ("home", "Home", "Dashboard"),
             ("tasks", "Tasks", "Tasks"),
+            ("check", "Habits", "Habits"),
             ("timer", "Focus", "Focus"),
             ("calendar", "Calendar", "Calendar"),
             ("notebook", "Notes", "Notes"),
