@@ -1,4 +1,5 @@
 import sqlite3
+import os
 from pathlib import Path
 from datetime import datetime
 
@@ -9,8 +10,19 @@ class Database:
 
     def __init__(self):
 
+        override = os.environ.get(
+            "FLUX_DB_PATH"
+        )
+
         self.db_path = (
-            Path(__file__).parent / "flux.db"
+            Path(override).expanduser().resolve()
+            if override
+            else Path(__file__).parent / "flux.db"
+        )
+
+        self.db_path.parent.mkdir(
+            parents=True,
+            exist_ok=True
         )
 
         self.connection = None
@@ -111,6 +123,38 @@ class Database:
             key TEXT PRIMARY KEY,
 
             value TEXT
+
+        )
+        """)
+
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS habits (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            name TEXT NOT NULL,
+
+            color TEXT DEFAULT '#5A7DFF',
+
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+        )
+        """)
+
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS habit_logs (
+
+            habit_id INTEGER NOT NULL,
+
+            day TEXT NOT NULL,
+
+            completed INTEGER NOT NULL DEFAULT 0,
+
+            PRIMARY KEY (habit_id, day),
+
+            FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE
 
         )
         """)
@@ -355,6 +399,145 @@ class Database:
 
 
         self.connection.commit()
+
+
+
+    # -------------------------
+    # HABITS
+    # -------------------------
+
+
+    def add_habit(self, name, color="#5A7DFF"):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO habits (name, color)
+            VALUES (?, ?)
+            """,
+            (
+                (name or "").strip(),
+                color
+            )
+        )
+
+        self.connection.commit()
+
+        return cursor.lastrowid
+
+
+    def get_habits(self):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT *
+            FROM habits
+            ORDER BY id ASC
+            """
+        )
+
+        return cursor.fetchall()
+
+
+    def delete_habit(self, habit_id):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            "DELETE FROM habit_logs WHERE habit_id = ?",
+            (habit_id,)
+        )
+
+        cursor.execute(
+            "DELETE FROM habits WHERE id = ?",
+            (habit_id,)
+        )
+
+        self.connection.commit()
+
+
+    def get_habit_day(self, habit_id, day):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT completed
+            FROM habit_logs
+            WHERE habit_id = ? AND day = ?
+            """,
+            (
+                habit_id,
+                day
+            )
+        )
+
+        row = cursor.fetchone()
+
+        return bool(
+            row["completed"]
+            if row
+            else 0
+        )
+
+
+    def set_habit_day(self, habit_id, day, completed):
+
+        cursor = self.connection.cursor()
+
+        cursor.execute(
+            """
+            INSERT INTO habit_logs
+            (
+                habit_id,
+                day,
+                completed
+            )
+            VALUES (?, ?, ?)
+            ON CONFLICT(habit_id, day)
+            DO UPDATE SET completed = excluded.completed
+            """,
+            (
+                habit_id,
+                day,
+                1 if completed else 0
+            )
+        )
+
+        self.connection.commit()
+
+
+    def get_habit_logs(self, habit_id=None):
+
+        cursor = self.connection.cursor()
+
+        if habit_id is None:
+
+            cursor.execute(
+                """
+                SELECT *
+                FROM habit_logs
+                WHERE completed = 1
+                ORDER BY day ASC
+                """
+            )
+
+        else:
+
+            cursor.execute(
+                """
+                SELECT *
+                FROM habit_logs
+                WHERE habit_id = ? AND completed = 1
+                ORDER BY day ASC
+                """,
+                (habit_id,)
+            )
+
+        return cursor.fetchall()
 
 
 
