@@ -1,4 +1,5 @@
 import random
+import time
 import math
 
 from PySide6.QtCore import Qt, QTimer, QRectF, QPointF
@@ -126,15 +127,15 @@ class Petal:
             self.color = QColor(255, 190, 210)
 
 
-    def update(self, width, height):
+    def update(self, width, height, step=1.0):
 
-        self.y += self.speed
+        self.y += self.speed * step
 
-        self.swing += self.swing_speed
+        self.swing += self.swing_speed * step
 
-        self.x += math.sin(self.swing) * self.drift
+        self.x += math.sin(self.swing) * self.drift * step
 
-        self.rotation += self.rotation_speed
+        self.rotation += self.rotation_speed * step
 
         if self.y > height + 40 or self.x < -60 or self.x > width + 60:
 
@@ -142,6 +143,8 @@ class Petal:
 
 
 class SakuraBackground(QWidget):
+
+    FRAME_MS = 16
 
     # Atmospheric Sakura background: a dusk-pink gradient sky, a warm
     # off-center glow, two blurred cherry-blossom branch silhouettes at
@@ -168,6 +171,8 @@ class SakuraBackground(QWidget):
 
         self._initialized = False
 
+        self._last_tick = None
+
         self._atmosphere = QPixmap()
 
         self._atmosphere_size = None
@@ -175,20 +180,23 @@ class SakuraBackground(QWidget):
         self.timer = QTimer(self)
 
         self.timer.timeout.connect(self._tick)
-
-        self.timer.start(30)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
 
 
     def start(self):
 
         if not self.timer.isActive():
 
-            self.timer.start(30)
+            self._last_tick = time.perf_counter()
+
+            self.timer.start(self.FRAME_MS)
 
 
     def stop(self):
 
         self.timer.stop()
+
+        self._last_tick = None
 
 
     def _init_petals(self):
@@ -221,9 +229,27 @@ class SakuraBackground(QWidget):
 
             self._init_petals()
 
+        now = time.perf_counter()
+
+        dt = (
+            self.FRAME_MS / 1000.0
+            if self._last_tick is None
+            else max(
+                0.001,
+                min(
+                    0.050,
+                    now - self._last_tick
+                )
+            )
+        )
+
+        self._last_tick = now
+
+        step = dt * 30.0
+
         for petal in self.petals:
 
-            petal.update(self.width(), self.height())
+            petal.update(self.width(), self.height(), step)
 
         self.update()
 
