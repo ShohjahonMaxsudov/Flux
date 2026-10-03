@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import (
@@ -20,7 +21,7 @@ class SynthwaveBackground(QWidget):
     # the horizon, a glowing perspective grid that scrolls toward you, and
     # a pink haze where they meet. Stars come from the StarField layer.
 
-    FRAME_MS = 33
+    FRAME_MS = 16
 
     HORIZON = 0.80
 
@@ -34,6 +35,8 @@ class SynthwaveBackground(QWidget):
 
         self._time = 0.0
 
+        self._last_tick = None
+
         self._sun = None
 
         self._sun_key = None
@@ -41,12 +44,13 @@ class SynthwaveBackground(QWidget):
         self.timer = QTimer(self)
 
         self.timer.timeout.connect(self._tick)
-
-        self.timer.start(self.FRAME_MS)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
 
     def start(self):
 
         if not self.timer.isActive():
+
+            self._last_tick = time.perf_counter()
 
             self.timer.start(self.FRAME_MS)
 
@@ -54,9 +58,27 @@ class SynthwaveBackground(QWidget):
 
         self.timer.stop()
 
+        self._last_tick = None
+
     def _tick(self):
 
-        self._time += self.FRAME_MS / 1000.0
+        now = time.perf_counter()
+
+        dt = (
+            self.FRAME_MS / 1000.0
+            if self._last_tick is None
+            else max(
+                0.001,
+                min(
+                    0.050,
+                    now - self._last_tick
+                )
+            )
+        )
+
+        self._last_tick = now
+
+        self._time += dt
 
         self.update()
 
