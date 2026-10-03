@@ -22,7 +22,7 @@ from utils.settings_manager import SettingsManager
 
 def main():
     app = QApplication([])
-    app.setFont(QFont("Arial", 10))
+    app.setFont(QFont("Helvetica", 10))
 
     settings = SettingsManager()
     settings.set_lock_screen_enabled(False)
