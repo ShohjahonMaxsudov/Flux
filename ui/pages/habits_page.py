@@ -571,7 +571,7 @@ class HabitsPage(QWidget):
             checked
         )
 
-        self._update_stats()
+        self.refresh_habits()
 
 
     def _delete(self, habit_id):
@@ -901,8 +901,7 @@ class HabitsPage(QWidget):
         )
 
         self.setStyleSheet(
-            self.styleSheet()
-            + f"""
+            f"""
             QLabel#habitDayLabel {{
                 color:{theme.Colors.TEXT_SECONDARY};
                 font-size:10px;
