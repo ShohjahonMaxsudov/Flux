@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QRectF
+from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -9,7 +10,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QFrame,
-    QProgressBar,
     QScrollArea,
 )
 
@@ -17,6 +17,134 @@ from themes.manager import ThemeManager
 from ui.icons import IconGlyph
 from utils.glass_effects import GlassFrame, apply_soft_shadow
 from utils.habit_manager import HabitManager
+
+
+class HabitProgressBar(QWidget):
+
+    def __init__(
+        self,
+        completed,
+        total,
+        color
+    ):
+
+        super().__init__()
+
+        self.completed = max(
+            0,
+            int(completed)
+        )
+
+        self.total = max(
+            1,
+            int(total)
+        )
+
+        self.color = color
+
+        self.setFixedSize(
+            104,
+            10
+        )
+
+
+    def set_progress(
+        self,
+        completed,
+        total=None
+    ):
+
+        self.completed = max(
+            0,
+            int(completed)
+        )
+
+        if total is not None:
+
+            self.total = max(
+                1,
+                int(total)
+            )
+
+        self.update()
+
+
+    def paintEvent(
+        self,
+        event
+    ):
+
+        painter = QPainter(
+            self
+        )
+
+        painter.setRenderHint(
+            QPainter.RenderHint.Antialiasing,
+            True
+        )
+
+
+        track = QRectF(
+            0,
+            1,
+            self.width(),
+            self.height() - 2
+        )
+
+        painter.setPen(
+            Qt.PenStyle.NoPen
+        )
+
+        painter.setBrush(
+            QColor(
+                255,
+                255,
+                255,
+                24
+            )
+        )
+
+        painter.drawRoundedRect(
+            track,
+            4,
+            4
+        )
+
+
+        ratio = min(
+            1.0,
+            self.completed / self.total
+        )
+
+        if ratio <= 0:
+
+            return
+
+
+        fill_width = max(
+            8.0,
+            track.width() * ratio
+        )
+
+        fill = QRectF(
+            track.left(),
+            track.top(),
+            fill_width,
+            track.height()
+        )
+
+        painter.setBrush(
+            QColor(
+                self.color
+            )
+        )
+
+        painter.drawRoundedRect(
+            fill,
+            4,
+            4
+        )
+
 
 
 class HabitDayButton(QPushButton):
@@ -643,42 +771,27 @@ class HabitsPage(QWidget):
             if completed
         )
 
-        progress = QProgressBar()
-
-        progress.setRange(
-            0,
-            7
+        progress = HabitProgressBar(
+            completed=done,
+            total=7,
+            color=habit["color"]
         )
 
-        progress.setValue(
-            done
+
+        progress_text = QLabel(
+            f"{done}/7"
         )
 
-        progress.setTextVisible(
-            False
+        progress_text.setObjectName(
+            "habitProgressText"
         )
 
-        progress.setFixedWidth(
-            90
+        progress_text.setFixedWidth(
+            26
         )
 
-        progress.setFixedHeight(
-            6
-        )
-
-        progress.setStyleSheet(
-            f"""
-            QProgressBar {{
-                background:{theme.Colors.SURFACE_ALT};
-                border:none;
-                border-radius:3px;
-            }}
-
-            QProgressBar::chunk {{
-                background:{habit["color"]};
-                border-radius:3px;
-            }}
-            """
+        progress_text.setAlignment(
+            Qt.AlignmentFlag.AlignCenter
         )
 
 
@@ -695,8 +808,12 @@ class HabitsPage(QWidget):
             progress
         )
 
+        layout.addWidget(
+            progress_text
+        )
+
         layout.addSpacing(
-            8
+            6
         )
 
 
@@ -922,6 +1039,14 @@ class HabitsPage(QWidget):
             QLabel#habitName {{
                 color:{theme.Colors.TEXT};
                 font-size:13px;
+                font-weight:600;
+                background:transparent;
+                border:none;
+            }}
+
+            QLabel#habitProgressText {{
+                color:{theme.Colors.TEXT_SECONDARY};
+                font-size:10px;
                 font-weight:600;
                 background:transparent;
                 border:none;
