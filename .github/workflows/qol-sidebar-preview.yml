@@ -48,6 +48,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Flux-correct-QOL-preview
-          path: preview-qol-sidebar-habits.png
+          path: |
+            preview-qol-sidebar-habits.png
+            preview-qol-calendar.png
           if-no-files-found: error
           retention-days: 7
