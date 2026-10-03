@@ -1,0 +1,100 @@
+name: Build Flux v3 Preview
+
+on:
+  push:
+    branches:
+      - flux-v3-rework
+    paths:
+      - ".github/workflows/v3-build.yml"
+      - "app.py"
+      - "main.py"
+      - "ui/**"
+      - "utils/**"
+      - "database/**"
+      - "themes/**"
+      - "assets/**"
+      - "requirements.txt"
+      - "installer.iss"
+      - "version_info.txt"
+      - "scripts/smoke_v3.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flux-v3-preview-build
+  cancel-in-progress: true
+
+jobs:
+  build-preview:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Run v3 interaction QA
+        shell: pwsh
+        env:
+          FLUX_PREVIEW: "1"
+        run: python scripts/smoke_v3.py
+
+      - name: Build Flux v3
+        shell: pwsh
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name "Flux" --icon "assets\flux.ico" --version-file "version_info.txt" --contents-directory "." --add-data "assets;assets" --collect-submodules "themes" --collect-submodules "animations" --collect-submodules "ui" --collect-submodules "utils" --collect-submodules "database" "main.py"
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist\Flux\Flux.exe")) {
+            Write-Error "Flux.exe was not created."
+            exit 1
+          }
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path dist/Flux/* -DestinationPath Flux-v3-Preview-Portable.zip -Force
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) {
+            Write-Error "Inno Setup compiler not found."
+            exit 1
+          }
+          & $iscc "installer.iss"
+          if (-not (Test-Path "release\Flux-v3-Preview-Setup.exe")) {
+            Write-Error "Flux v3 preview installer was not created."
+            exit 1
+          }
+
+      - name: Upload preview build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flux-v3-preview-windows
+          path: |
+            Flux-v3-Preview-Portable.zip
+            release/Flux-v3-Preview-Setup.exe
+          if-no-files-found: error
+          retention-days: 14
