@@ -40,7 +40,7 @@ class Radius:
 
 @dataclass(frozen=True)
 class Font:
-    FAMILY = "Segoe UI"
+    FAMILY = "Helvetica"
 
     SMALL = 10
     BODY = 11
