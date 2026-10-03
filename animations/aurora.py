@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import random
+import time
 from dataclasses import dataclass
 
 from PySide6.QtCore import (
@@ -80,6 +81,8 @@ class AuroraBackground(QWidget):
 
         self._time = 0.0
 
+        self._last_tick = None
+
         self._blobs: list[Blob] = []
 
         self._ribbons: list[Ribbon] = []
@@ -96,7 +99,9 @@ class AuroraBackground(QWidget):
             self._tick
         )
 
-        self.timer.start(self.FRAME_MS)
+        self.timer.setTimerType(
+            Qt.TimerType.PreciseTimer
+        )
 
 
     def configure(self, atmosphere):
@@ -143,6 +148,8 @@ class AuroraBackground(QWidget):
 
         if not self.timer.isActive():
 
+            self._last_tick = time.perf_counter()
+
             self.timer.start(self.FRAME_MS)
 
 
@@ -150,11 +157,29 @@ class AuroraBackground(QWidget):
 
         self.timer.stop()
 
+        self._last_tick = None
+
 
 
     def _tick(self):
 
-        self._time += self.FRAME_MS / 1000.0
+        now = time.perf_counter()
+
+        dt = (
+            self.FRAME_MS / 1000.0
+            if self._last_tick is None
+            else max(
+                0.001,
+                min(
+                    0.050,
+                    now - self._last_tick
+                )
+            )
+        )
+
+        self._last_tick = now
+
+        self._time += dt
 
         self.update()
 
