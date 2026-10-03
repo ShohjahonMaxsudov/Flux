@@ -309,6 +309,8 @@ class Sidebar(RefractiveGlassMixin, QFrame):
 
             ("tasks", "Tasks", "Tasks"),
 
+            ("check", "Habits", "Habits"),
+
             ("timer", "Focus", "Focus"),
 
             ("calendar", "Calendar", "Calendar"),
