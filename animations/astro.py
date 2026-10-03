@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import random
+import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen, QRadialGradient
@@ -20,7 +21,7 @@ class AstroBackground(QWidget):
     # sways along the part of its orbit that is actually on screen, so the
     # whole system stays visible instead of planets sailing out of frame.
 
-    FRAME_MS = 33
+    FRAME_MS = 16
 
     # name, orbit (fraction of the window diagonal), radius px, rgb,
     # sway period in seconds, start phase, has rings
@@ -47,6 +48,8 @@ class AstroBackground(QWidget):
 
         self._time = 0.0
 
+        self._last_tick = None
+
         self._ranges = {}
 
         self._ranges_key = None
@@ -67,12 +70,13 @@ class AstroBackground(QWidget):
         self.timer = QTimer(self)
 
         self.timer.timeout.connect(self._tick)
-
-        self.timer.start(self.FRAME_MS)
+        self.timer.setTimerType(Qt.TimerType.PreciseTimer)
 
     def start(self):
 
         if not self.timer.isActive():
+
+            self._last_tick = time.perf_counter()
 
             self.timer.start(self.FRAME_MS)
 
@@ -80,9 +84,27 @@ class AstroBackground(QWidget):
 
         self.timer.stop()
 
+        self._last_tick = None
+
     def _tick(self):
 
-        self._time += self.FRAME_MS / 1000.0
+        now = time.perf_counter()
+
+        dt = (
+            self.FRAME_MS / 1000.0
+            if self._last_tick is None
+            else max(
+                0.001,
+                min(
+                    0.050,
+                    now - self._last_tick
+                )
+            )
+        )
+
+        self._last_tick = now
+
+        self._time += dt
 
         self.update()
 
