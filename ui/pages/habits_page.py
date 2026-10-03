@@ -737,21 +737,6 @@ class HabitsPage(QWidget):
         )
 
 
-        accent = QFrame()
-
-        accent.setFixedSize(
-            4,
-            34
-        )
-
-        accent.setStyleSheet(
-            f"""
-            background:{habit["color"]};
-            border:none;
-            border-radius:2px;
-            """
-        )
-
         name = QLabel(
             habit["name"]
         )
@@ -774,7 +759,7 @@ class HabitsPage(QWidget):
         progress = HabitProgressBar(
             completed=done,
             total=7,
-            color=habit["color"]
+            color=theme.Colors.PRIMARY
         )
 
 
@@ -794,10 +779,6 @@ class HabitsPage(QWidget):
             Qt.AlignmentFlag.AlignCenter
         )
 
-
-        layout.addWidget(
-            accent
-        )
 
         layout.addWidget(
             name,
