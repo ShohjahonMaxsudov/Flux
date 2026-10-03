@@ -1,0 +1,98 @@
+name: Build Flux 1.0.4 QOL
+
+on:
+  push:
+    branches:
+      - flux-qol-habits
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flux-qol-104
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller
+
+      - name: Syntax check
+        shell: pwsh
+        run: python -m compileall -q app.py animations database themes ui utils scripts
+
+      - name: QOL interaction and FPS smoke test
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python scripts/smoke_qol.py
+
+      - name: Render Habits preview
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python scripts/render_qol.py
+
+      - name: Build Flux
+        shell: pwsh
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name "Flux" --icon "assets\flux.ico" --version-file "version_info.txt" --contents-directory "." --add-data "assets;assets" --add-data "database\flux.db;database" --collect-submodules "themes" --collect-submodules "animations" --collect-submodules "ui" --collect-submodules "utils" --collect-submodules "database" "main.py"
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist\Flux\Flux.exe")) {
+            Write-Error "Flux.exe was not created."
+            exit 1
+          }
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path dist/Flux/* -DestinationPath Flux-QOL-1.0.4-Portable.zip -Force
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) {
+            Write-Error "Inno Setup compiler not found."
+            exit 1
+          }
+          & $iscc "installer.iss"
+          if (-not (Test-Path "release\Flux-QOL-1.0.4-Setup.exe")) {
+            Write-Error "QOL installer was not created."
+            exit 1
+          }
+
+      - name: Upload Flux QOL build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flux-QOL-1.0.4-Windows
+          path: |
+            Flux-QOL-1.0.4-Portable.zip
+            release/Flux-QOL-1.0.4-Setup.exe
+            preview-qol-habits.png
+          if-no-files-found: error
+          retention-days: 30
