@@ -105,9 +105,6 @@ def main():
     window.close()
     app.quit()
 
-    if qa_db.exists():
-        qa_db.unlink()
-
     print("Flux QOL 1.0.4 smoke test passed")
 
 
