@@ -1,4 +1,5 @@
 import sqlite3
+import os
 from pathlib import Path
 from datetime import datetime
 
@@ -9,8 +10,19 @@ class Database:
 
     def __init__(self):
 
+        override = os.environ.get(
+            "FLUX_DB_PATH"
+        )
+
         self.db_path = (
-            Path(__file__).parent / "flux.db"
+            Path(override).expanduser().resolve()
+            if override
+            else Path(__file__).parent / "flux.db"
+        )
+
+        self.db_path.parent.mkdir(
+            parents=True,
+            exist_ok=True
         )
 
         self.connection = None
