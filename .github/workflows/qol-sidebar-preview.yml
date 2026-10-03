@@ -1,1 +1,53 @@
-name: QOL Sidebar Habits Preview\n\non:\n  push:\n    branches:\n      - flux-qol-sidebar-habits\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\nconcurrency:\n  group: flux-qol-sidebar-preview\n  cancel-in-progress: true\n\njobs:\n  qa:\n    runs-on: windows-latest\n\n    steps:\n      - name: Checkout\n        uses: actions/checkout@v4\n\n      - name: Python\n        uses: actions/setup-python@v5\n        with:\n          python-version: "3.13"\n\n      - name: Dependencies\n        shell: pwsh\n        run: |\n          python -m pip install --upgrade pip\n          python -m pip install -r requirements.txt\n\n      - name: Syntax\n        shell: pwsh\n        run: python -m compileall -q app.py animations database themes ui utils scripts\n\n      - name: Smoke\n        shell: pwsh\n        run: python scripts/smoke_sidebar_qol.py\n\n      - name: Render actual Habits screen\n        shell: pwsh\n        run: python scripts/render_sidebar_qol.py\n\n      - name: Upload screenshot\n        uses: actions/upload-artifact@v4\n        with:\n          name: Flux-correct-QOL-preview\n          path: preview-qol-sidebar-habits.png\n          if-no-files-found: error\n          retention-days: 7
+name: QOL Sidebar Habits Preview
+
+on:
+  push:
+    branches:
+      - flux-qol-sidebar-habits
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flux-qol-sidebar-preview
+  cancel-in-progress: true
+
+jobs:
+  qa:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Syntax
+        shell: pwsh
+        run: python -m compileall -q app.py animations database themes ui utils scripts
+
+      - name: Smoke
+        shell: pwsh
+        run: python scripts/smoke_sidebar_qol.py
+
+      - name: Render actual Habits screen
+        shell: pwsh
+        run: python scripts/render_sidebar_qol.py
+
+      - name: Upload screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: Flux-correct-QOL-preview
+          path: preview-qol-sidebar-habits.png
+          if-no-files-found: error
+          retention-days: 7
