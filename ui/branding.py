@@ -20,13 +20,9 @@ from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QWidget
 # ---------------------------------------------------------------------------
 
 def resource_path(relative):
-
     # Works both from source and from a frozen (PyInstaller) build.
-
     bundle = getattr(sys, "_MEIPASS", None)
-
     root = Path(bundle) if bundle else Path(__file__).resolve().parent.parent
-
     return str(root / relative)
 
 
@@ -35,29 +31,20 @@ def resource_path(relative):
 # ---------------------------------------------------------------------------
 
 def apply_app_identity(app, app_id="ianfn.flux.desktop"):
-
     # Window + taskbar icon. On Windows the taskbar groups an app under its
     # process's AppUserModelID; without setting one it shows the generic
     # Python/launcher icon instead of ours.
-
     if sys.platform == "win32":
-
         try:
-
             import ctypes
 
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
-                app_id
-            )
-
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
         except Exception:
-
             pass
 
     icon = QIcon(resource_path("assets/flux.ico"))
 
     if icon.isNull():
-
         icon = QIcon(resource_path("assets/flux_icon.png"))
 
     app.setWindowIcon(icon)
@@ -68,14 +55,11 @@ def apply_app_identity(app, app_id="ianfn.flux.desktop"):
 # ---------------------------------------------------------------------------
 
 class FluxLogo(QWidget):
-
     # Flux wordmark with its sparkle glow. Both variants are transparent
     # PNGs, so the aurora / starfield / sakura background shows through the
     # glow. "dark" is the white wordmark (dark + sakura themes); "light" is
     # an ink-coloured version so the logo doesn't disappear on white.
-
     def __init__(self, width=214, variant="dark", parent=None):
-
         super().__init__(parent)
 
         self._pixmaps = {
@@ -84,86 +68,55 @@ class FluxLogo(QWidget):
         }
 
         self._variant = variant
-
         self._cache = None
-
         source = self._pixmaps[variant]
-
         ratio = source.height() / max(1, source.width())
-
         self.setFixedSize(width, round(width * ratio))
-
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-
     def set_variant(self, variant):
-
         if variant == self._variant or variant not in self._pixmaps:
             return
 
         self._variant = variant
-
         self._cache = None
-
         self.update()
 
-
     def set_theme(self, theme_name):
-
-        self.set_variant(
-            "light" if theme_name == "light" else "dark"
-        )
-
+        self.set_variant("light" if theme_name == "light" else "dark")
 
     def _scaled(self):
-
         dpr = self.devicePixelRatioF()
-
         w = round(self.width() * dpr)
-
         h = round(self.height() * dpr)
-
         key = (self._variant, w, h)
 
         if self._cache is None or self._cache[0] != key:
-
             pm = self._pixmaps[self._variant].scaled(
                 w,
                 h,
                 Qt.AspectRatioMode.IgnoreAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
+                Qt.TransformationMode.SmoothTransformation,
             )
 
             pm.setDevicePixelRatio(dpr)
-
             self._cache = (key, pm)
 
         return self._cache[1]
 
-
     def paintEvent(self, event):
-
         painter = QPainter(self)
-
-        painter.setRenderHint(
-            QPainter.RenderHint.SmoothPixmapTransform
-        )
-
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         painter.drawPixmap(0, 0, self._scaled())
-
         painter.end()
 
 
 # ---------------------------------------------------------------------------
 # Credits strip (Settings, bottom)
 # ---------------------------------------------------------------------------
-
 # Glyph paths: Bootstrap Icons (MIT), 16x16 viewBox.
-
 _GLYPHS = {
-
     "telegram": (
         "M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.287 5.906q-1.168.486-4.666 2.01-.567.225-.595.442"
         "c-.03.243.275.339.69.47l.175.055c.408.133.958.288 1.243.294q.39.01.868-.32 3.269-2.206 "
@@ -173,7 +126,6 @@ _GLYPHS = {
         ".547-.82.265-1.417.786-4.486.906-5.751a1.4 1.4 0 0 0-.013-.315.34.34 0 0 0-.114-.217"
         ".53.53 0 0 0-.31-.093c-.3.005-.763.166-2.984 1.09"
     ),
-
     "instagram": (
         "M8 0C5.829 0 5.556.01 4.703.048 3.85.088 3.269.222 2.76.42a3.9 3.9 0 0 0-1.417.923A3.9 "
         "3.9 0 0 0 .42 2.76C.222 3.268.087 3.85.048 4.7.01 5.555 0 5.827 0 8.001c0 2.172.01 2.444"
@@ -193,7 +145,6 @@ _GLYPHS = {
         "1 0 0 1.92.96.96 0 0 0 0-1.92m-4.27 1.122a4.109 4.109 0 1 0 0 8.217 4.109 4.109 0 0 0 "
         "0-8.217m0 1.441a2.667 2.667 0 1 1 0 5.334 2.667 2.667 0 0 1 0-5.334"
     ),
-
     "discord": (
         "M13.545 2.907a13.2 13.2 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406"
         ".833a12.2 12.2 0 0 0-3.658 0 8 8 0 0 0-.412-.833.05.05 0 0 0-.052-.025c-1.125.194-2.22"
@@ -210,10 +161,8 @@ _GLYPHS = {
     ),
 }
 
-
 # (glyph, handle), in display order. @fluxbyian is the official changelog
 # and showcase channel.
-
 CREDITS = [
     ("telegram", "@ianfn"),
     ("instagram", "@ianvrv"),
@@ -223,7 +172,6 @@ CREDITS = [
 
 
 def _glyph_pixmap(name, px, color, dpr):
-
     svg = (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
         f'<path fill="{color.name()}" fill-opacity="{color.alphaF():.3f}" '
@@ -231,154 +179,85 @@ def _glyph_pixmap(name, px, color, dpr):
     )
 
     size = max(1, round(px * dpr))
-
     pm = QPixmap(size, size)
-
     pm.fill(Qt.GlobalColor.transparent)
-
     painter = QPainter(pm)
-
     painter.setRenderHints(
-        QPainter.RenderHint.Antialiasing
-        | QPainter.RenderHint.SmoothPixmapTransform
+        QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform
     )
-
     QSvgRenderer(QByteArray(svg.encode("utf-8"))).render(painter)
-
     painter.end()
-
     pm.setDevicePixelRatio(dpr)
-
     return pm
 
 
 class CreditsFooter(QWidget):
-
     # Purely decorative "made by" strip. It ignores the mouse completely -
     # no clicks, no hover, no cursor change, no selectable text - so nobody
     # opens a link by accident.
-
     def __init__(self, icon_px=9, font_px=8, opacity=0.42, parent=None):
-
         super().__init__(parent)
-
         self._icon_px = icon_px
-
         self._font_px = font_px
-
         self._opacity = opacity
-
         self._color = QColor("#FFFFFF")
-
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
-
         row = QHBoxLayout(self)
-
         row.setContentsMargins(0, 0, 0, 0)
-
         row.setSpacing(11)
-
-
         self._icons = []
-
         self._texts = []
 
         for glyph, handle in CREDITS:
-
             cell = QWidget(self)
-
             cell.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-
             cellLayout = QHBoxLayout(cell)
-
             cellLayout.setContentsMargins(0, 0, 0, 0)
-
             cellLayout.setSpacing(3)
-
-
             icon = QLabel(cell)
-
             icon.setFixedSize(icon_px, icon_px)
-
             icon.setStyleSheet("background:transparent; border:none;")
-
-
             text = QLabel(handle, cell)
-
             text.setTextFormat(Qt.TextFormat.PlainText)
-
-            text.setTextInteractionFlags(
-                Qt.TextInteractionFlag.NoTextInteraction
-            )
-
+            text.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
 
             for widget in (icon, text):
-
-                widget.setAttribute(
-                    Qt.WidgetAttribute.WA_TransparentForMouseEvents
-                )
-
+                widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
                 widget.setCursor(Qt.CursorShape.ArrowCursor)
 
-
             cellLayout.addWidget(icon)
-
             cellLayout.addWidget(text)
-
             row.addWidget(cell)
-
             self._icons.append((icon, glyph))
-
             self._texts.append(text)
-
 
         self._render()
 
-
     def set_color(self, color):
-
         # `color` is the theme's text colour (any QColor-parsable string);
         # the strip draws it at low opacity so it reads as a signature,
         # not as UI.
-
         self._color = QColor(color)
-
         self._render()
 
-
     def _render(self):
-
         c = QColor(self._color)
-
         c.setAlphaF(self._opacity)
-
         css = f"rgba({c.red()},{c.green()},{c.blue()},{c.alpha()})"
-
         screen = QApplication.primaryScreen()
-
         dpr = max(self.devicePixelRatioF(), screen.devicePixelRatio() if screen else 1.0)
 
         for icon, glyph in self._icons:
-
-            icon.setPixmap(
-                _glyph_pixmap(glyph, self._icon_px, c, dpr)
-            )
+            icon.setPixmap(_glyph_pixmap(glyph, self._icon_px, c, dpr))
 
         for text in self._texts:
-
             text.setStyleSheet(
                 f"background:transparent; border:none; color:{css}; "
                 f"font-size:{self._font_px}px;"
             )
 
-
     def showEvent(self, event):
-
         super().showEvent(event)
-
         self._render()

@@ -1,80 +1,27 @@
-import sqlite3
 import os
-import shutil
-import sys
+import sqlite3
 from pathlib import Path
 from datetime import datetime
 
 
-
 class Database:
-
-
     def __init__(self):
-
-        project_db = Path(__file__).parent / "flux.db"
-
-        if getattr(sys, "frozen", False) and os.name == "nt":
-
-            data_root = Path(
-                os.environ.get("LOCALAPPDATA")
-                or (Path.home() / "AppData" / "Local")
-            ) / "Flux"
-
-            data_root.mkdir(
-                parents=True,
-                exist_ok=True
-            )
-
-            self.db_path = data_root / "flux.db"
-
-            legacy_db = (
-                Path(sys.executable).resolve().parent
-                / "database"
-                / "flux.db"
-            )
-
-            if (
-                not self.db_path.exists()
-                and legacy_db.exists()
-            ):
-
-                try:
-                    shutil.copy2(
-                        legacy_db,
-                        self.db_path
-                    )
-                except OSError:
-                    pass
-
-        else:
-
-            self.db_path = project_db
-
+        override = os.environ.get("FLUX_DB_PATH")
+        self.db_path = Path(override).expanduser().resolve() if override else Path(
+            __file__
+        ).parent / "flux.db"
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.connection = None
-
         self.connect()
-
         self.create_tables()
-
         self.upgrade_database()
 
-
-
     def connect(self):
-
-        self.connection = sqlite3.connect(
-            self.db_path
-        )
-
+        self.connection = sqlite3.connect(self.db_path)
         self.connection.row_factory = sqlite3.Row
 
-
-
     def create_tables(self):
-
         cursor = self.connection.cursor()
-
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS tasks (
@@ -107,8 +54,6 @@ class Database:
         )
         """)
 
-
-
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS categories (
 
@@ -120,7 +65,6 @@ class Database:
 
         )
         """)
-
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS notes (
@@ -142,7 +86,6 @@ class Database:
         )
         """)
 
-
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS settings (
 
@@ -153,28 +96,6 @@ class Database:
         )
         """)
 
-
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS milestones (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            title TEXT NOT NULL,
-
-            target INTEGER NOT NULL DEFAULT 100,
-
-            progress INTEGER NOT NULL DEFAULT 0,
-
-            due_date TEXT DEFAULT '',
-
-            color TEXT DEFAULT '#5A7DFF',
-
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-
-        )
-        """)
-
-
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS habits (
 
@@ -182,13 +103,12 @@ class Database:
 
             name TEXT NOT NULL,
 
-            color TEXT DEFAULT '#5D9BFF',
+            color TEXT DEFAULT '#5A7DFF',
 
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
         )
         """)
-
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS habit_logs (
@@ -199,241 +119,123 @@ class Database:
 
             completed INTEGER NOT NULL DEFAULT 0,
 
-            PRIMARY KEY (habit_id, day)
+            PRIMARY KEY (habit_id, day),
+
+            FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE
 
         )
         """)
 
-
-        cursor.execute(
-            "SELECT COUNT(*) AS count FROM habits"
-        )
-
-        if cursor.fetchone()["count"] == 0:
-
-            cursor.executemany(
-                "INSERT INTO habits (name, color) VALUES (?, ?)",
-                [
-                    ("Read", "#5D9BFF"),
-                    ("Exercise", "#4BE8A5"),
-                    ("Journal", "#A56EFF"),
-                    ("No Social Media", "#FF8A5B"),
-                    ("8h Sleep", "#6EA8FF"),
-                ]
-            )
-
-
         self.connection.commit()
-
-
 
     def get_setting(self, key, default=None):
-
         cursor = self.connection.cursor()
-
-        cursor.execute(
-            "SELECT value FROM settings WHERE key = ?",
-            (key,)
-        )
-
+        cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
         row = cursor.fetchone()
-
         return row["value"] if row else default
 
-
-
     def set_setting(self, key, value):
-
         cursor = self.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             INSERT INTO settings (key, value) VALUES (?, ?)
             ON CONFLICT(key) DO UPDATE SET value = excluded.value
-            """,
-            (key, value)
-        )
+            """, (key, value))
 
         self.connection.commit()
-
-
 
     # -------------------------
     # NOTES
     # -------------------------
 
     def add_note(self, title="", body="", tags=""):
-
         cursor = self.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             INSERT INTO notes (title, body, tags)
             VALUES (?, ?, ?)
-            """,
-            (title, body, tags)
-        )
+            """, (title, body, tags))
 
         self.connection.commit()
-
         return cursor.lastrowid
-
 
     # -------------------------
     # FOCUS SESSIONS
     # -------------------------
 
     def add_focus_session(self, minutes, session_date):
-
         cursor = self.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             INSERT INTO focus_sessions (minutes, session_date)
             VALUES (?, ?)
-            """,
-            (minutes, session_date)
-        )
+            """, (minutes, session_date))
 
         self.connection.commit()
-
         return cursor.lastrowid
 
-
     def get_focus_sessions(self):
-
         cursor = self.connection.cursor()
-
-        cursor.execute(
-            "SELECT * FROM focus_sessions ORDER BY id DESC"
-        )
-
+        cursor.execute("SELECT * FROM focus_sessions ORDER BY id DESC")
         return cursor.fetchall()
-
 
     def get_notes(self):
-
         cursor = self.connection.cursor()
-
-        cursor.execute(
-            "SELECT * FROM notes ORDER BY updated_at DESC"
-        )
-
+        cursor.execute("SELECT * FROM notes ORDER BY updated_at DESC")
         return cursor.fetchall()
 
-
     def get_note(self, note_id):
-
         cursor = self.connection.cursor()
-
-        cursor.execute(
-            "SELECT * FROM notes WHERE id = ?",
-            (note_id,)
-        )
-
+        cursor.execute("SELECT * FROM notes WHERE id = ?", (note_id,))
         return cursor.fetchone()
 
-
     def update_note(self, note_id, title, body, tags):
-
         cursor = self.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             UPDATE notes
             SET title = ?, body = ?, tags = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-            """,
-            (title, body, tags, note_id)
-        )
+            """, (title, body, tags, note_id))
 
         self.connection.commit()
 
-
     def set_note_locked(self, note_id, locked, pin_hash=None):
-
         cursor = self.connection.cursor()
 
         cursor.execute(
             "UPDATE notes SET locked = ?, pin_hash = ? WHERE id = ?",
-            (1 if locked else 0, pin_hash, note_id)
+            (1 if locked else 0, pin_hash, note_id),
         )
 
         self.connection.commit()
-
 
     def delete_note(self, note_id):
-
         cursor = self.connection.cursor()
-
-        cursor.execute(
-            "DELETE FROM notes WHERE id = ?",
-            (note_id,)
-        )
-
+        cursor.execute("DELETE FROM notes WHERE id = ?", (note_id,))
         self.connection.commit()
 
-
-
     def upgrade_database(self):
-
         cursor = self.connection.cursor()
-
-
-        cursor.execute(
-            "PRAGMA table_info(tasks)"
-        )
-
-
-        columns = [
-
-            row[1]
-
-            for row in cursor.fetchall()
-
-        ]
-
-
+        cursor.execute("PRAGMA table_info(tasks)")
+        columns = [row[1] for row in cursor.fetchall()]
 
         new_columns = {
-
-            "task_date":
-                "TEXT",
-
-            "description":
-                "TEXT DEFAULT ''",
-
-            "color":
-                "TEXT DEFAULT '#5A7DFF'",
-
-            "reminder":
-                "TEXT DEFAULT 'None'",
-
-            "repeat":
-                "TEXT DEFAULT 'Never'",
-
-            "important":
-                "INTEGER DEFAULT 0",
-
-            "completed_at":
-                "TIMESTAMP"
-
+            "task_date": "TEXT",
+            "description": "TEXT DEFAULT ''",
+            "color": "TEXT DEFAULT '#5A7DFF'",
+            "reminder": "TEXT DEFAULT 'None'",
+            "repeat": "TEXT DEFAULT 'Never'",
+            "important": "INTEGER DEFAULT 0",
+            "completed_at": "TIMESTAMP",
         }
 
-
-
         for name, data_type in new_columns.items():
-
             if name not in columns:
-
-                cursor.execute(
-                    f"""
+                cursor.execute(f"""
                     ALTER TABLE tasks
                     ADD COLUMN {name} {data_type}
-                    """
-                )
-
-
+                    """)
 
         cursor.execute(
             "CREATE TABLE IF NOT EXISTS focus_sessions ("
@@ -444,83 +246,59 @@ class Database:
             ")"
         )
 
-
-        cursor.execute(
-            "PRAGMA table_info(notes)"
-        )
-
-        note_columns = [
-            row[1]
-            for row in cursor.fetchall()
-        ]
+        cursor.execute("PRAGMA table_info(notes)")
+        note_columns = [row[1] for row in cursor.fetchall()]
 
         if "pin_hash" not in note_columns:
-
-            cursor.execute(
-                "ALTER TABLE notes ADD COLUMN pin_hash TEXT"
-            )
-
+            cursor.execute("ALTER TABLE notes ADD COLUMN pin_hash TEXT")
 
         self.connection.commit()
 
-
-
-    # -------------------------
-    # HABITS
-    # -------------------------
-
-
-    def get_habits(self):
-
+    def add_habit(self, name, color="#5A7DFF"):
         cursor = self.connection.cursor()
 
-        cursor.execute(
-            "SELECT * FROM habits ORDER BY id ASC"
-        )
+        cursor.execute("""
+            INSERT INTO habits (name, color)
+            VALUES (?, ?)
+            """, ((name or "").strip(), color))
+
+        self.connection.commit()
+        return cursor.lastrowid
+
+    def get_habits(self):
+        cursor = self.connection.cursor()
+
+        cursor.execute("""
+            SELECT *
+            FROM habits
+            ORDER BY id ASC
+            """)
 
         return cursor.fetchall()
 
+    def delete_habit(self, habit_id):
+        cursor = self.connection.cursor()
+        cursor.execute("DELETE FROM habit_logs WHERE habit_id = ?", (habit_id,))
+        cursor.execute("DELETE FROM habits WHERE id = ?", (habit_id,))
+        self.connection.commit()
 
-    def get_habit_day(
-        self,
-        habit_id,
-        day
-    ):
-
+    def get_habit_day(self, habit_id, day):
         cursor = self.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT completed
             FROM habit_logs
             WHERE habit_id = ? AND day = ?
-            """,
-            (
-                habit_id,
-                day
-            )
-        )
+            """, (habit_id, day))
 
         row = cursor.fetchone()
 
-        return bool(
-            row["completed"]
-            if row
-            else 0
-        )
+        return bool(row["completed"] if row else 0)
 
-
-    def set_habit_day(
-        self,
-        habit_id,
-        day,
-        completed
-    ):
-
+    def set_habit_day(self, habit_id, day, completed):
         cursor = self.connection.cursor()
 
-        cursor.execute(
-            """
+        cursor.execute("""
             INSERT INTO habit_logs
             (
                 habit_id,
@@ -530,146 +308,35 @@ class Database:
             VALUES (?, ?, ?)
             ON CONFLICT(habit_id, day)
             DO UPDATE SET completed = excluded.completed
-            """,
-            (
-                habit_id,
-                day,
-                1 if completed else 0
-            )
-        )
+            """, (habit_id, day, 1 if completed else 0))
 
         self.connection.commit()
 
-
-
-    # -------------------------
-    # MILESTONES
-    # -------------------------
-
-
-    def add_milestone(
-        self,
-        title,
-        target=100,
-        due_date="",
-        color="#5A7DFF"
-    ):
-
+    def get_habit_logs(self, habit_id=None):
         cursor = self.connection.cursor()
 
-        cursor.execute(
-            """
-            INSERT INTO milestones
-            (
-                title,
-                target,
-                progress,
-                due_date,
-                color
-            )
-            VALUES (?, ?, 0, ?, ?)
-            """,
-            (
-                title,
-                max(1, int(target)),
-                due_date,
-                color
-            )
-        )
+        if habit_id is None:
+            cursor.execute("""
+                SELECT *
+                FROM habit_logs
+                WHERE completed = 1
+                ORDER BY day ASC
+                """)
 
-        self.connection.commit()
+            return cursor.fetchall()
 
-        return cursor.lastrowid
-
-
-    def get_milestones(self):
-
-        cursor = self.connection.cursor()
-
-        cursor.execute(
-            """
-            SELECT *
-            FROM milestones
-            ORDER BY
-                CASE
-                    WHEN progress >= target THEN 1
-                    ELSE 0
-                END,
-                created_at DESC
-            """
-        )
+        cursor.execute("""
+                SELECT *
+                FROM habit_logs
+                WHERE habit_id = ? AND completed = 1
+                ORDER BY day ASC
+                """, (habit_id,))
 
         return cursor.fetchall()
-
-
-    def update_milestone_progress(
-        self,
-        milestone_id,
-        progress
-    ):
-
-        cursor = self.connection.cursor()
-
-        cursor.execute(
-            """
-            SELECT target
-            FROM milestones
-            WHERE id = ?
-            """,
-            (milestone_id,)
-        )
-
-        row = cursor.fetchone()
-
-        if not row:
-            return
-
-        value = max(
-            0,
-            min(
-                int(row["target"]),
-                int(progress)
-            )
-        )
-
-        cursor.execute(
-            """
-            UPDATE milestones
-            SET progress = ?
-            WHERE id = ?
-            """,
-            (
-                value,
-                milestone_id
-            )
-        )
-
-        self.connection.commit()
-
-
-    def delete_milestone(
-        self,
-        milestone_id
-    ):
-
-        cursor = self.connection.cursor()
-
-        cursor.execute(
-            """
-            DELETE FROM milestones
-            WHERE id = ?
-            """,
-            (milestone_id,)
-        )
-
-        self.connection.commit()
-
-
 
     # -------------------------
     # TASKS
     # -------------------------
-
 
     def add_task(
         self,
@@ -682,12 +349,9 @@ class Database:
         color="#5A7DFF",
         reminder="None",
         repeat="Never",
-        important=False
+        important=False,
     ):
-
-
         cursor = self.connection.cursor()
-
 
         cursor.execute(
         """
@@ -709,7 +373,6 @@ class Database:
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 
         """,
-
         (
             title,
             time,
@@ -722,34 +385,21 @@ class Database:
             repeat,
             1 if important else 0
         )
-
         )
 
-
         self.connection.commit()
-
-
         return cursor.lastrowid
 
-
-
     def get_tasks(self):
-
         cursor = self.connection.cursor()
 
-
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT *
             FROM tasks
             ORDER BY id DESC
-            """
-        )
-
+            """)
 
         return cursor.fetchall()
-
-
 
     def update_task(
         self,
@@ -763,17 +413,10 @@ class Database:
         color="#5A7DFF",
         reminder="None",
         repeat="Never",
-        important=False
+        important=False,
     ):
-
-        # NOTE: this method did not exist before — TaskManager.edit_task()
-        # was calling it anyway, so saving an edited task raised
-        # AttributeError and crashed the dialog. Every field the Edit
-        # Task dialog collects is written back here, not just the four
-        # that used to make it through.
-
+        # Writes back every field the Edit Task dialog collects.
         cursor = self.connection.cursor()
-
 
         cursor.execute(
             """
@@ -792,7 +435,6 @@ class Database:
 
             WHERE id = ?
             """,
-
             (
                 title,
                 time,
@@ -806,23 +448,12 @@ class Database:
                 1 if important else 0,
                 task_id
             )
-
         )
-
 
         self.connection.commit()
 
-
-
-    def update_task_status(
-        self,
-        task_id,
-        completed
-    ):
-
-
+    def update_task_status(self, task_id, completed):
         cursor = self.connection.cursor()
-
 
         cursor.execute(
             """
@@ -834,47 +465,27 @@ class Database:
             WHERE id = ?
 
             """,
-
             (
                 1 if completed else 0,
                 datetime.now().strftime("%Y-%m-%d %H:%M:%S") if completed else None,
                 task_id
             )
-
         )
-
 
         self.connection.commit()
 
-
-
-    def delete_task(
-        self,
-        task_id
-    ):
-
-
+    def delete_task(self, task_id):
         cursor = self.connection.cursor()
 
-
-        cursor.execute(
-            """
+        cursor.execute("""
             DELETE FROM tasks
 
             WHERE id = ?
 
-            """,
-
-            (task_id,)
-        )
-
+            """, (task_id,))
 
         self.connection.commit()
 
-
-
     def close(self):
-
         if self.connection:
-
             self.connection.close()

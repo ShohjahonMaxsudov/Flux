@@ -1,92 +1,98 @@
+"""Habit tracking: create / delete habits, tick days, weekly completion and best streak."""
+
 from datetime import datetime, timedelta
 
 from database.database import Database
 
 
 class HabitManager:
-
     def __init__(self):
-
         self.database = Database()
 
+    def create_habit(self, name, color="#5A7DFF"):
+        name = (name or "").strip()
+
+        if not name:
+            return
+
+        return self.database.add_habit(name, color)
+
+    def delete_habit(self, habit_id):
+        self.database.delete_habit(habit_id)
 
     def get_habits(self):
+        return [dict(row) for row in self.database.get_habits()]
 
-        return [
-            dict(row)
-            for row in self.database.get_habits()
-        ]
+    def week_days(self):
+        today = datetime.now().date()
+        monday = today - timedelta(days=today.weekday())
+        return [monday + timedelta(days=offset) for offset in range(7)]
 
-
-    def get_habits_with_week(self):
-
-        monday = (
-            datetime.now()
-            - timedelta(days=datetime.now().weekday())
-        ).date()
-
+    def habits_with_week(self):
+        days = self.week_days()
         result = []
 
         for habit in self.get_habits():
-
-            week = []
-
-            for offset in range(7):
-
-                day = monday + timedelta(days=offset)
-                day_iso = day.strftime("%Y-%m-%d")
-
-                week.append(
-                    (
-                        day_iso,
-                        self.database.get_habit_day(
-                            habit["id"],
-                            day_iso
-                        )
-                    )
+            habit["week"] = [
+                (
+                    day.strftime("%Y-%m-%d"),
+                    self.database.get_habit_day(habit["id"], day.strftime("%Y-%m-%d")),
                 )
+                for day in days
+            ]
 
-            habit["week"] = week
             result.append(habit)
 
         return result
 
+    def toggle_day(self, habit_id, day):
+        current = self.database.get_habit_day(habit_id, day)
+        self.database.set_habit_day(habit_id, day, not current)
+        return not current
 
-    def toggle_day(self, habit_id, day_iso):
-
-        current = self.database.get_habit_day(
-            habit_id,
-            day_iso
-        )
-
-        self.database.set_habit_day(
-            habit_id,
-            day_iso,
-            not current
-        )
-
-
-    def week_completion_percent(self):
-
-        habits = self.get_habits_with_week()
+    def weekly_completion(self):
+        habits = self.habits_with_week()
 
         if not habits:
             return 0
 
+        done = sum(1 for habit in habits for _day, completed in habit["week"] if completed)
         total = len(habits) * 7
 
-        completed = sum(
-            1
-            for habit in habits
-            for _day, checked in habit["week"]
-            if checked
+        if total:
+            return round(done / total * 100)
+
+        return 0
+
+    def completed_today(self):
+        today = datetime.now().strftime("%Y-%m-%d")
+        return sum(
+            1 for habit in self.get_habits() if self.database.get_habit_day(habit["id"], today)
         )
 
-        return round(
-            (completed / total) * 100
-        )
+    def best_streak(self):
+        best = 0
 
+        for habit in self.get_habits():
+            days = [
+                datetime.strptime(row["day"], "%Y-%m-%d").date()
+                for row in self.database.get_habit_logs(habit["id"])
+            ]
+
+            if days:
+                days = sorted(set(days))
+                streak = 1
+                best = max(best, streak)
+
+                for previous, current in zip(days, days[1:]):
+                    if current - previous == timedelta(days=1):
+                        streak += 1
+                    else:
+                        streak = 1
+
+                    best = max(best, streak)
+
+        return best
 
     def close(self):
-
         self.database.close()
