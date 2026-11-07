@@ -1,4 +1,4 @@
-name: Publish Flux v1.2.0 release
+name: Publish Flux v1.2.0 stable release
 
 on:
   push:
@@ -19,29 +19,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download the verified Windows build
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh run download 42364243844 --repo "$GITHUB_REPOSITORY" --name Flux-windows-build --dir release-assets
-          test -f release-assets/Flux-portable-windows.zip
-          test -f release-assets/release/FluxSetup.exe
-
-      - name: Publish GitHub prerelease
+      - name: Promote release to latest stable
         shell: bash
         run: |
           set -euo pipefail
           TAG="v1.2.0"
-          TITLE="Flux v1.2.0 — Performance & Habits Update (Developer BETA)"
+          TITLE="Flux v1.2.0 — Performance & Habits Update"
           NOTES=".release-notes/v1.2.0.md"
-          ASSETS=(
-            "release-assets/Flux-portable-windows.zip"
-            "release-assets/release/FluxSetup.exe"
-          )
+          RELEASE_ID="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .id)"
 
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TITLE" --notes-file "$NOTES" --prerelease
-            gh release upload "$TAG" "${ASSETS[@]}" --repo "$GITHUB_REPOSITORY" --clobber
-          else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target main --title "$TITLE" --notes-file "$NOTES" --prerelease "${ASSETS[@]}"
-          fi
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID"             -f name="$TITLE"             -f body="$(cat "$NOTES")"             -F prerelease=false             -f make_latest=true
