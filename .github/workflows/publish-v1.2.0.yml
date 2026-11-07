@@ -1,0 +1,47 @@
+name: Publish Flux v1.2.0 release
+
+on:
+  push:
+    paths:
+      - ".release-notes/v1.2.0.md"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download the verified Windows build
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download 42364243844 --repo "$GITHUB_REPOSITORY" --name Flux-windows-build --dir release-assets
+          test -f release-assets/Flux-portable-windows.zip
+          test -f release-assets/release/FluxSetup.exe
+
+      - name: Publish GitHub prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="v1.2.0"
+          TITLE="Flux v1.2.0 — Performance & Habits Update (Developer BETA)"
+          NOTES=".release-notes/v1.2.0.md"
+          ASSETS=(
+            "release-assets/Flux-portable-windows.zip"
+            "release-assets/release/FluxSetup.exe"
+          )
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TITLE" --notes-file "$NOTES" --prerelease
+            gh release upload "$TAG" "${ASSETS[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target main --title "$TITLE" --notes-file "$NOTES" --prerelease "${ASSETS[@]}"
+          fi
